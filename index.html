@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LASU Navigator</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a2f6b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="qrcode.min.js"></script>
+<link rel="stylesheet" href="lasu-navigator-1.css">
+</head>
+<body>
+
+<div id="offline-banner" class="offline-banner">📵 You are offline — cached data is being used</div>
+
+<header class="hdr">
+  <div class="logo"><div class="logo-dot"></div>LASU NAVIGATOR</div>
+  <div class="hdr-actions">
+    <button class="hdr-btn notif-badge" onclick="showPage('notifications')" title="Notifications">🔔</button>
+    <button class="hdr-btn" onclick="toggleTheme()">🌓</button>
+  </div>
+</header>
+
+<div class="scroll">
+
+<!-- ═══ HOME ═══ -->
+<section id="page-home" class="page active">
+  <div class="hero">
+    <h1 id="hero-name">Welcome, Student! 👋</h1>
+    <p>Lagos State University · Ojo Campus</p>
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:12px">
+      <div class="hero-badge">🎓 <span>2024/2025</span> Session</div>
+      <div class="gps-status"><div class="gps-dot" id="gps-dot"></div><span id="gps-label">GPS off</span></div>
+    </div>
+  </div>
+  <div class="hbody">
+    <div class="sec-title">Quick Access</div>
+    <div class="qgrid">
+      <div class="qcard accent" onclick="showPage('map');switchMapTab('mv')">
+        <div class="qi">🗺️</div><div class="qt">Campus Map</div><div class="qs">Visual + GPS</div>
+      </div>
+      <div class="qcard" onclick="showPage('map');switchMapTab('dv')">
+        <div class="qi">🧭</div><div class="qt">Directions</div><div class="qs">Step-by-step</div>
+      </div>
+      <div class="qcard" onclick="showPage('cgpa')">
+        <div class="qi">🎓</div><div class="qt">CGPA Calc</div><div class="qs">5-point scale</div>
+      </div>
+      <div class="qcard" onclick="showPage('timetable')">
+        <div class="qi">📅</div><div class="qt">Timetable</div><div class="qs">My schedule</div>
+      </div>
+      <div class="qcard" onclick="showPage('shuttle')">
+        <div class="qi">🚌</div><div class="qt">Shuttle</div><div class="qs">Bus tracker</div>
+      </div>
+      <div class="qcard" onclick="showPage('advisor')">
+        <div class="qi">📋</div><div class="qt">Advisor</div><div class="qs">Course guide</div>
+      </div>
+    </div>
+    <div class="sec-title">More Features</div>
+    <div class="links-list">
+      <div class="lrow" onclick="showPage('profile');showQR()">
+        <div class="lrow-l"><div class="lrow-ic">🪪</div><div class="lrow-t">QR Student ID</div></div><div class="lrow-a">→</div>
+      </div>
+      <div class="lrow" onclick="showPage('map');switchMapTab('hv')">
+        <div class="lrow-l"><div class="lrow-ic">🏠</div><div class="lrow-t">Hostel Locator</div></div><div class="lrow-a">→</div>
+      </div>
+      <div class="lrow" onclick="showPage('notifications')">
+        <div class="lrow-l"><div class="lrow-ic">🔔</div><div class="lrow-t">Notifications & Reminders</div></div><div class="lrow-a">→</div>
+      </div>
+      <div class="lrow" onclick="showPage('profile')">
+        <div class="lrow-l"><div class="lrow-ic">👤</div><div class="lrow-t">Student Profile</div></div><div class="lrow-a">→</div>
+      </div>
+      <a class="lrow" href="https://lidc.lasu.edu.ng" target="_blank">
+        <div class="lrow-l"><div class="lrow-ic">🌐</div><div class="lrow-t">Student Portal (LIDC)</div></div><div class="lrow-a">↗</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MAP ═══ -->
+<section id="page-map" class="page">
+  <div class="mhdr"><h2>Campus Navigation</h2><p>Tap buildings · GPS locates you</p></div>
+  <div class="mtabs">
+    <button class="mtab active" id="tab-mv" onclick="switchMapTab('mv')">🗺️ Map</button>
+    <button class="mtab" id="tab-dv" onclick="switchMapTab('dv')">🧭 Directions</button>
+    <button class="mtab" id="tab-sv" onclick="switchMapTab('sv')">🛰️ Satellite</button>
+    <button class="mtab" id="tab-hv" onclick="switchMapTab('hv')">🏠 Hostels</button>
+  </div>
+
+  <!-- SVG MAP -->
+  <div id="mv" class="mv active">
+    <div class="svgwrap">
+      <svg id="campus-svg" class="campus-svg" viewBox="0 0 360 500" xmlns="http://www.w3.org/2000/svg">
+        <rect width="360" height="500" fill="#cfe8c9"/>
+... (file continues)
+<script src="lasu-navigator-1.js"></script>
+</body>
+</html>

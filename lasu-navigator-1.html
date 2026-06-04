@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LASU Navigator</title>
+<link rel="manifest" href="data:application/json,{%22name%22:%22LASU Navigator%22,%22short_name%22:%22LASU%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%231a2f6b%22,%22theme_color%22:%22%231a2f6b%22}">
+<meta name="theme-color" content="#1a2f6b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="qrcode.min.js"></script>
+<link rel="stylesheet" href="lasu-navigator-1.css">
+</head>
+<body>
+
+<div id="offline-banner" class="offline-banner">📵 You are offline — cached data is being used</div>
+
+<header class="hdr">
+  <div class="logo"><div class="logo-dot"></div>LASU NAVIGATOR</div>
+  <div class="hdr-actions">
+    <button class="hdr-btn notif-badge" onclick="showPage('notifications')" title="Notifications">🔔</button>
+    <button class="hdr-btn" onclick="toggleTheme()">🌓</button>
+  </div>
+</header>
+
+<div class="scroll">
+
+<!-- ═══ HOME ═══ -->
+<section id="page-home" class="page active">
+  <div class="hero">
+    <h1 id="hero-name">Welcome, Student! 👋</h1>
+    <p>Lagos State University · Ojo Campus</p>
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:12px">
+      <div class="hero-badge">🎓 <span>2024/2025</span> Session</div>
+      <div class="gps-status"><div class="gps-dot" id="gps-dot"></div><span id="gps-label">GPS off</span></div>
+    </div>
+  </div>
+  <div class="hbody">
+    <div class="sec-title">Quick Access</div>
+    <div class="qgrid">
+      <div class="qcard accent" onclick="showPage('map');switchMapTab('mv')">
+        <div class="qi">🗺️</div><div class="qt">Campus Map</div><div class="qs">Visual + GPS</div>
+      </div>
+      <div class="qcard" onclick="showPage('map');switchMapTab('dv')">
+        <div class="qi">🧭</div><div class="qt">Directions</div><div class="qs">Step-by-step</div>
+      </div>
+      <div class="qcard" onclick="showPage('cgpa')">
+        <div class="qi">🎓</div><div class="qt">CGPA Calc</div><div class="qs">5-point scale</div>
+      </div>
+      <div class="qcard" onclick="showPage('timetable')">
+        <div class="qi">📅</div><div class="qt">Timetable</div><div class="qs">My schedule</div>
+      </div>
+      <div class="qcard" onclick="showPage('shuttle')">
+        <div class="qi">🚌</div><div class="qt">Shuttle</div><div class="qs">Bus tracker</div>
+      </div>
+      <div class="qcard" onclick="showPage('advisor')">
+        <div class="qi">📋</div><div class="qt">Advisor</div><div class="qs">Course guide</div>
+      </div>
+    </div>
+    <div class="sec-title">More Features</div>
+    <div class="links-list">
+      <div class="lrow" onclick="showPage('profile');showQR()">
+        <div class="lrow-l"><div class="lrow-ic">🪪</div><div class="lrow-t">QR Student ID</div></div><div class="lrow-a">→</div>
+      </div>
+      <div class="lrow" onclick="showPage('map');switchMapTab('hv')">
+        <div class="lrow-l"><div class="lrow-ic">🏠</div><div class="lrow-t">Hostel Locator</div></div><div class="lrow-a">→</div>
+      </div>
+      <div class="lrow" onclick="showPage('notifications')">
+        <div class="lrow-l"><div class="lrow-ic">🔔</div><div class="lrow-t">Notifications & Reminders</div></div><div class="lrow-a">→</div>
+      </div>
+      <div class="lrow" onclick="showPage('profile')">
+        <div class="lrow-l"><div class="lrow-ic">👤</div><div class="lrow-t">Student Profile</div></div><div class="lrow-a">→</div>
+      </div>
+      <a class="lrow" href="https://lidc.lasu.edu.ng" target="_blank">
+        <div class="lrow-l"><div class="lrow-ic">🌐</div><div class="lrow-t">Student Portal (LIDC)</div></div><div class="lrow-a">↗</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MAP ═══ -->
+<section id="page-map" class="page">
+  <div class="mhdr"><h2>Campus Navigation</h2><p>Tap buildings · GPS locates you</p></div>
+  <div class="mtabs">
+    <button class="mtab active" id="tab-mv" onclick="switchMapTab('mv')">🗺️ Map</button>
+    <button class="mtab" id="tab-dv" onclick="switchMapTab('dv')">🧭 Directions</button>
+    <button class="mtab" id="tab-sv" onclick="switchMapTab('sv')">🛰️ Satellite</button>
+    <button class="mtab" id="tab-hv" onclick="switchMapTab('hv')">🏠 Hostels</button>
+  </div>
+
+  <!-- SVG MAP -->
+  <div id="mv" class="mv active">
+    <div class="svgwrap">
+      <svg id="campus-svg" class="campus-svg" viewBox="0 0 360 500" xmlns="http://www.w3.org/2000/svg">
+        <rect width="360" height="500" fill="#cfe8c9"/>
+        <rect x="55" y="55" width="250" height="130" fill="#bcd9b5" rx="8"/>
+        <rect x="70" y="265" width="220" height="150" fill="#bcd9b5" rx="8"/>
+        <line x1="180" y1="0" x2="180" y2="500" class="road"/>
+        <line x1="0" y1="200" x2="360" y2="200" class="road"/>
+        <line x1="0" y1="320" x2="360" y2="320" class="road"/>
+        <line x1="180" y1="0" x2="180" y2="500" class="roadl"/>
+        <line x1="0" y1="200" x2="360" y2="200" class="roadl"/>
+        <line x1="0" y1="320" x2="360" y2="320" class="roadl"/>
+        <!-- GATE -->
+        <rect x="154" y="450" width="52" height="36" rx="4" fill="#37474f" class="bldg" onclick="showLoc('Main Gate','Primary entrance to LASU Ojo Campus. All visitors check in here. Security desk staffed 24/7.','0 mins (start)')"/>
+        <rect x="152" y="452" width="5" height="30" rx="2" fill="rgba(255,255,255,.3)"/><rect x="203" y="452" width="5" height="30" rx="2" fill="rgba(255,255,255,.3)"/>
+        <text x="180" y="462" class="mlabel">MAIN</text><text x="180" y="471" class="mlabel">GATE</text>
+        <!-- SENATE -->
+        <circle cx="180" cy="258" r="33" fill="#0d7a3e" class="bldg" onclick="showLoc('Senate Building','Administrative heart of LASU. Houses Vice-Chancellor, Registrar, Bursary and admin. Convocation ceremonies held here.','8 mins')"/>
+        <text x="180" y="254" class="mlabel">SENATE</text><text x="180" y="263" class="mlabel">BUILDING</text>
+        <!-- SPGS -->
+        <rect x="132" y="72" width="76" height="52" rx="6" fill="#00695c" class="bldg" onclick="showLoc('School of Part-Time Studies (SPGS)','Admin handles matric numbers, registration and course forms. Lectures run mostly evenings and weekends.','10 mins')"/>
+        <text x="170" y="91" class="mlabel">SCHOOL OF</text><text x="170" y="100" class="mlabel">PART-TIME</text><text x="170" y="109" class="mlabel">STUDIES</text>
+        <!-- LIBRARY -->
+        <rect x="245" y="215" width="68" height="52" rx="6" fill="#00838f" class="bldg" onclick="showLoc('Fatai Williams Library','Over 50,000 volumes. Reading rooms, computer labs, e-library access for all registered students.','10 mins')"/>
+        <text x="279" y="234" class="mlabel">FATAI</text><text x="279" y="243" class="mlabel">WILLIAMS</text><text x="279" y="252" class="mlabel">LIBRARY</text>
+        <!-- SCIENCE -->
+        <rect x="38" y="210" width="72" height="56" rx="6" fill="#1565c0" class="bldg" onclick="showLoc('Faculty of Science','Computer Science, Mathematics, Chemistry, Physics, Biochemistry and Microbiology. CS lab and science complex.','12 mins')"/>
+        <text x="74" y="230" class="mlabel">FACULTY</text><text x="74" y="239" class="mlabel">OF SCIENCE</text><text x="74" y="248" class="mlabel">(CS DEPT)</text>
+        <!-- ENGINEERING -->
+        <rect x="38" y="72" width="72" height="52" rx="6" fill="#e65100" class="bldg" onclick="showLoc('Faculty of Engineering','Civil, Electrical, Mechanical and Systems Engineering. Machine workshop and engineering labs at north end.','18 mins')"/>
+        <text x="74" y="90" class="mlabel">FACULTY OF</text><text x="74" y="99" class="mlabel">ENGINEERING</text>
+        <!-- MANAGEMENT -->
+        <rect x="38" y="335" width="82" height="52" rx="6" fill="#ad1457" class="bldg" onclick="showLoc('Faculty of Management Sciences','Accounting, Business Admin, Banking & Finance, Marketing and Public Administration.','7 mins')"/>
+        <text x="79" y="354" class="mlabel">MANAGEMENT</text><text x="79" y="363" class="mlabel">SCIENCES</text>
+        <!-- ARTS -->
+        <rect x="248" y="335" width="74" height="52" rx="6" fill="#6a1b9a" class="bldg" onclick="showLoc('Faculty of Arts','English, History, Philosophy, Yoruba, Religious Studies and Theatre Arts. LASU Cultural Festival base.','9 mins')"/>
+        <text x="285" y="354" class="mlabel">FACULTY</text><text x="285" y="363" class="mlabel">OF ARTS</text>
+        <!-- SUB -->
+        <rect x="248" y="405" width="74" height="42" rx="6" fill="#c9941a" class="bldg" onclick="showLoc('Student Union Building (SUB)','Social hub. Student Representative Council, clubs, elections and major events. Popular buka beside it.','4 mins')"/>
+        <text x="285" y="422" class="mlabel">STUDENT</text><text x="285" y="431" class="mlabel">UNION (SUB)</text>
+        <!-- SPORTS -->
+        <rect x="248" y="72" width="74" height="80" rx="10" fill="#2e7d32" class="bldg" onclick="showLoc('Sports Complex','Football pitch, basketball courts, volleyball courts and athletics track. Open during non-exam periods.','20 mins')"/>
+        <text x="285" y="107" class="mlabel">SPORTS</text><text x="285" y="116" class="mlabel">COMPLEX</text>
+        <!-- CAFETERIA -->
+        <rect x="148" y="336" width="62" height="40" rx="5" fill="#f57f17" class="bldg" onclick="showLoc('Cafeteria / Buka Area','Multiple vendors, affordable meals. Very busy 12–2pm. Snack kiosks also available.','5 mins')"/>
+        <text x="179" y="351" class="mlabel">CAFE</text><text x="179" y="360" class="mlabel">/ BUKA</text>
+        <!-- MEDICINE -->
+        <rect x="38" y="282" width="72" height="46" rx="5" fill="#c62828" class="bldg" onclick="showLoc('College of Medicine (LASUCOM)','Medicine, Nursing and Physiotherapy programs. Western wing near clinical labs.','14 mins')"/>
+        <text x="74" y="301" class="mlabel">COLLEGE</text><text x="74" y="310" class="mlabel">OF MEDICINE</text>
+        <!-- HOSTELS -->
+        <rect x="248" y="170" width="74" height="40" rx="5" fill="#558b2f" class="bldg" onclick="showLoc('Student Hostels','On-campus accommodation. Male and female blocks. Allocation at session start.','11 mins')"/>
+        <text x="285" y="185" class="mlabel">STUDENT</text><text x="285" y="194" class="mlabel">HOSTELS</text>
+        <!-- GPS marker (hidden until located) -->
+        <circle id="gps-ring" cx="-50" cy="-50" r="5" class="gps-ring"/>
+        <circle id="gps-marker" cx="-50" cy="-50" r="5" class="gps-marker"/>
+        <!-- Compass -->
+        <g transform="translate(332,455)">
+          <circle cx="0" cy="0" r="16" fill="white" opacity=".88"/>
+          <text x="0" y="-6" font-size="7" text-anchor="middle" fill="#1a2f6b" font-weight="bold" font-family="Playfair Display,serif">N</text>
+          <text x="0" y="10" font-size="5.5" text-anchor="middle" fill="#888" font-family="sans-serif">S</text>
+          <text x="-9" y="2" font-size="5.5" text-anchor="middle" fill="#888" font-family="sans-serif">W</text>
+          <text x="9" y="2" font-size="5.5" text-anchor="middle" fill="#888" font-family="sans-serif">E</text>
+          <line x1="0" y1="-4" x2="0" y2="-12" stroke="#1a2f6b" stroke-width="1.5"/>
+        </g>
+      </svg>
+      <div id="gps-unavail" class="gps-unavail-overlay hidden">📍 Enable location for GPS tracking</div>
+    </div>
+    <div style="display:flex;gap:8px;padding:12px 18px 0">
+      <button class="btn-primary" style="font-size:.82rem;padding:10px" onclick="startGPS()">📍 Locate Me</button>
+      <button class="btn-outline" style="margin-top:0;font-size:.82rem;padding:10px" onclick="stopGPS()">✕ Stop GPS</button>
+    </div>
+    <div class="mlegend">
+      <div class="leg"><div class="legd" style="background:#0d7a3e"></div>Senate</div>
+      <div class="leg"><div class="legd" style="background:#00695c"></div>SPGS</div>
+      <div class="leg"><div class="legd" style="background:#1565c0"></div>Science</div>
+      <div class="leg"><div class="legd" style="background:#e65100"></div>Eng</div>
+      <div class="leg"><div class="legd" style="background:#ad1457"></div>Mgmt</div>
+      <div class="leg"><div class="legd" style="background:#6a1b9a"></div>Arts</div>
+      <div class="leg"><div class="legd" style="background:#00838f"></div>Library</div>
+      <div class="leg"><div class="legd" style="background:#c9941a"></div>SUB</div>
+      <div class="leg"><div class="legd" style="background:#2e7d32"></div>Sports</div>
+      <div class="leg"><div class="legd" style="background:#c62828"></div>Medicine</div>
+      <div class="leg"><div class="legd" style="background:#2196F3"></div>You</div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+
+  <!-- DIRECTIONS -->
+  <div id="dv" class="dv">
+    <div class="dir-panel">
+      <div class="dir-card">
+        <h3>🧭 Get Directions</h3>
+        <div class="form-row"><label>From</label>
+          <select id="from-loc">
+            <option value="gate">Main Gate</option>
+            <option value="senate">Senate Building</option>
+            <option value="spgs">School of Part-Time Studies (SPGS)</option>
+            <option value="library">Fatai Williams Library</option>
+            <option value="science">Faculty of Science</option>
+            <option value="eng">Faculty of Engineering</option>
+            <option value="mgmt">Faculty of Management Sciences</option>
+            <option value="arts">Faculty of Arts</option>
+            <option value="sub">Student Union Building (SUB)</option>
+            <option value="sports">Sports Complex</option>
+            <option value="cafe">Cafeteria / Buka</option>
+            <option value="medicine">College of Medicine</option>
+            <option value="hostel">Student Hostels</option>
+          </select>
+        </div>
+        <div class="form-row"><label>To</label>
+          <select id="to-loc">
+            <option value="senate">Senate Building</option>
+            <option value="spgs">School of Part-Time Studies (SPGS)</option>
+            <option value="library">Fatai Williams Library</option>
+            <option value="science">Faculty of Science</option>
+            <option value="eng">Faculty of Engineering</option>
+            <option value="mgmt">Faculty of Management Sciences</option>
+            <option value="arts">Faculty of Arts</option>
+            <option value="sub">Student Union Building (SUB)</option>
+            <option value="sports">Sports Complex</option>
+            <option value="cafe">Cafeteria / Buka</option>
+            <option value="medicine">College of Medicine</option>
+            <option value="hostel">Student Hostels</option>
+            <option value="gate">Main Gate</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="getDirections()">Show Route</button>
+        <div id="rresult" class="rresult"></div>
+      </div>
+      <div style="height:18px"></div>
+    </div>
+  </div>
+
+  <!-- SATELLITE -->
+  <div id="sv" class="sv">
+    <div class="sat-panel">
+      <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3964.5!2d3.1840!3d6.4698!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x103b879326e59715%3A0x6739075727632608!2sLagos%20State%20University%2C%20Ojo!5e1!3m2!1sen!2sng!4v1690000000000!5m2!1sen!2sng" allowfullscreen loading="lazy"></iframe>
+      <div class="satnote">💡 <span>Switch to <strong>Satellite</strong> in the map above for aerial view. Pinch to zoom into buildings.</span></div>
+      <div style="height:18px"></div>
+    </div>
+  </div>
+
+  <!-- HOSTELS -->
+  <div id="hv" class="hv">
+    <div style="padding:0 18px">
+      <div class="sec-title" style="padding-top:4px">On-Campus Accommodation</div>
+      <div class="hblock">
+        <h4>🏠 Halls of Residence (Female)</h4>
+        <p>Located on the east side of campus behind the Library. Access is restricted to female students only. Has a common room, laundry area, and power backup.</p>
+        <div class="hblock-meta">
+          <span class="chip green">~11 mins from gate</span>
+          <span class="chip gold">Female only</span>
+        </div>
+      </div>
+      <div class="hblock">
+        <h4>🏠 Halls of Residence (Male)</h4>
+        <p>Male accommodation blocks adjacent to the female halls. Known for tight security and an on-site generator. Room allocation is competitive — apply early each session.</p>
+        <div class="hblock-meta">
+          <span class="chip green">~11 mins from gate</span>
+          <span class="chip" style="background:rgba(21,101,192,.1);color:#1565c0">Male only</span>
+        </div>
+      </div>
+      <div class="hblock">
+        <h4>🏠 Postgraduate Hostel</h4>
+        <p>Reserved for postgraduate and masters students. Self-contained rooms available. Apply through the Bursary unit at the Senate Building.</p>
+        <div class="hblock-meta">
+          <span class="chip green">~12 mins from gate</span>
+          <span class="chip gold">PG Students</span>
+        </div>
+      </div>
+      <div class="hblock">
+        <h4>🏘️ Off-Campus Housing Tips</h4>
+        <p>Most LASU students live off-campus in <strong>Ojo, Igbo Elerin, Alaba Rago, or Trade Fair</strong> areas. Closest and cheapest is along the Ojo road corridor. Shared apartments for ₦80k–₦200k/yr are common for CS students.</p>
+        <div class="hblock-meta">
+          <span class="chip">Ojo</span>
+          <span class="chip">Igbo Elerin</span>
+          <span class="chip">Trade Fair</span>
+        </div>
+      </div>
+      <div style="height:18px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PROFILE ═══ -->
+<section id="page-profile" class="page">
+  <div id="profile-view" class="hidden">
+    <div class="phero">
+      <div class="avwrap"><img id="disp-photo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff66' d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt=""/></div>
+      <h2 id="disp-name">Student Name</h2>
+      <p id="disp-dept-h">Department · Level</p>
+    </div>
+    <div class="idwrap">
+      <div class="idtop"><div class="uniname">Lagos State University</div><div class="idbadge">STUDENT ID</div></div>
+      <div class="idbody">
+        <div class="dpair"><span class="dplabel">Matric Number</span><span class="dpval matric" id="disp-matric">—</span></div>
+        <div class="dpair"><span class="dplabel">Registration No.</span><span class="dpval" id="disp-reg">—</span></div>
+        <div class="dpair"><span class="dplabel">Faculty</span><span class="dpval" id="disp-faculty">—</span></div>
+        <div class="dpair"><span class="dplabel">Department</span><span class="dpval" id="disp-dept">—</span></div>
+        <div class="dpair"><span class="dplabel">Level</span><span class="dpval" id="disp-level">—</span></div>
+        <div class="dpair"><span class="dplabel">Phone</span><span class="dpval" id="disp-phone">—</span></div>
+      </div>
+    </div>
+    <!-- QR ID -->
+    <div class="qr-section" id="qr-section">
+      <div class="qr-card">
+        <h3>📱 QR Student ID</h3>
+        <p>Scan to verify student identity</p>
+        <div id="qr-canvas"></div>
+        <button class="btn-primary" onclick="regenerateQR()">🔄 Regenerate QR</button>
+      </div>
+    </div>
+    <button class="edbtn" onclick="showEditForm()">✏️ Edit Profile</button>
+  </div>
+
+  <div id="profile-form">
+    <div class="formwrap">
+      <h2>Student Profile</h2>
+      <p>Saved locally on this device only.</p>
+      <div class="photo-area">
+        <div class="photo-prev" onclick="document.getElementById('photo-input').click()">
+          <img id="photo-prev-img" src="" style="display:none"/><span id="photo-ph">📷</span>
+        </div>
+        <label class="photo-lbl" onclick="document.getElementById('photo-input').click()">Tap to upload photo</label>
+        <input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(event)">
+      </div>
+      <div class="form-row"><label>Full Name</label><input type="text" id="inp-name" placeholder="e.g. Nwankwo Kosiso Christopher"></div>
+      <div class="form-row"><label>Matric Number</label><input type="text" id="inp-matric" placeholder="e.g. 190201050"></div>
+      <div class="form-row"><label>Registration Number</label><input type="text" id="inp-reg" placeholder="JAMB or School Reg No."></div>
+      <div class="form-row"><label>Faculty</label>
+        <select id="inp-faculty">
+          <option value="">Select Faculty</option>
+          <option>Science</option><option>Engineering</option>
+          <option>Management Sciences</option><option>Education</option>
+          <option>Arts</option><option>Social Sciences</option>
+          <option>Law</option><option>College of Medicine</option>
+          <option>School of Part-Time Studies (SPGS)</option>
+          <option>Communication & Media Studies</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Department</label><input type="text" id="inp-dept" placeholder="e.g. Computer Science"></div>
+      <div class="form-row"><label>Level</label>
+        <select id="inp-level">
+          <option>100</option><option>200</option><option>300</option>
+          <option selected>400</option><option>500</option><option>600</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Phone Number</label><input type="tel" id="inp-phone" placeholder="e.g. 08012345678"></div>
+      <button class="btn-primary" onclick="saveProfile()">💾 Save Profile</button>
+      <button id="cancel-btn" class="btn-outline hidden" onclick="cancelEdit()">✕ Cancel</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CGPA CALCULATOR ═══ -->
+<section id="page-cgpa" class="page">
+  <div class="cgpa-wrap">
+    <div class="sec-title">Academic Tools</div>
+    <div class="cgpa-card">
+      <h3>🎓 CGPA Calculator</h3>
+      <p>LASU 5-point grading scale (A=5, B=4, C=3, D=2, E=1, F=0)</p>
+      <div id="courses-list"></div>
+      <button class="btn-outline" style="margin-top:4px" onclick="addCourseRow()">+ Add Course</button>
+      <button class="btn-primary" style="margin-top:8px" onclick="calcCGPA()">Calculate CGPA</button>
+      <div id="cgpa-result" class="cgpa-result">
+        <div class="cgpa-big" id="cgpa-val">0.00</div>
+        <div class="cgpa-sub">Grade Point Average</div>
+        <div class="cgpa-class" id="cgpa-class">—</div>
+        <div style="font-size:.78rem;margin-top:8px;opacity:.8" id="cgpa-detail"></div>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="cgpa-card" style="margin-top:0">
+      <h3>📊 Grade Scale Reference</h3>
+      <div style="margin-top:10px">
+        <div class="dpair"><span class="dplabel">A (70–100%)</span><span class="dpval" style="color:var(--green)">5 points — Excellent</span></div>
+        <div class="dpair"><span class="dplabel">B (60–69%)</span><span class="dpval" style="color:var(--green2)">4 points — Very Good</span></div>
+        <div class="dpair"><span class="dplabel">C (50–59%)</span><span class="dpval" style="color:var(--gold)">3 points — Good</span></div>
+        <div class="dpair"><span class="dplabel">D (45–49%)</span><span class="dpval" style="color:var(--gold)">2 points — Pass</span></div>
+        <div class="dpair"><span class="dplabel">E (40–44%)</span><span class="dpval" style="color:#e65100">1 point — Pass (Marginal)</span></div>
+        <div class="dpair" style="border:none"><span class="dplabel">F (0–39%)</span><span class="dpval" style="color:#c62828">0 points — Fail</span></div>
+      </div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+</section>
+
+<!-- ═══ TIMETABLE ═══ -->
+<section id="page-timetable" class="page">
+  <div class="tt-wrap">
+    <div class="sec-title">Class Timetable</div>
+    <div class="tt-days">
+      <div class="ttd active" id="ttd-Mon" onclick="selectDay('Mon')">Mon</div>
+      <div class="ttd" id="ttd-Tue" onclick="selectDay('Tue')">Tue</div>
+      <div class="ttd" id="ttd-Wed" onclick="selectDay('Wed')">Wed</div>
+      <div class="ttd" id="ttd-Thu" onclick="selectDay('Thu')">Thu</div>
+      <div class="ttd" id="ttd-Fri" onclick="selectDay('Fri')">Fri</div>
+      <div class="ttd" id="ttd-Sat" onclick="selectDay('Sat')">Sat</div>
+    </div>
+    <div id="tt-list" class="tt-list"></div>
+    <button class="btn-primary" style="margin-top:12px" onclick="openAddClass()">+ Add Class</button>
+    <div style="height:16px"></div>
+  </div>
+</section>
+
+<!-- ═══ SHUTTLE ═══ -->
+<section id="page-shuttle" class="page">
+  <div class="sh-wrap">
+    <div class="sec-title">Campus Shuttle Service</div>
+    <div class="sh-card">
+      <h3>🚌 LASU Bus Routes</h3>
+      <p>Tap a route to request pickup (simulated — LASU shuttle tracking is not yet live)</p>
+      <div class="sh-route" onclick="requestShuttle('Gate → Senate → Library')">
+        <div class="sr-dot"></div>
+        <div class="sr-name">Route A: Gate → Senate → Library</div>
+        <div class="sr-time">~12 mins</div>
+      </div>
+      <div class="sh-route" onclick="requestShuttle('Gate → SUB → Arts → Hostels')">
+        <div class="sr-dot"></div>
+        <div class="sr-name">Route B: Gate → SUB → Arts → Hostels</div>
+        <div class="sr-time">~15 mins</div>
+      </div>
+      <div class="sh-route" onclick="requestShuttle('Gate → Medicine → Engineering → Sports')">
+        <div class="sr-dot"></div>
+        <div class="sr-name">Route C: Gate → Medicine → Engineering → Sports</div>
+        <div class="sr-time">~22 mins</div>
+      </div>
+      <div class="sh-route" onclick="requestShuttle('SPGS Evening Express: Gate → SPGS')">
+        <div class="sr-dot"></div>
+        <div class="sr-name">Route D: SPGS Evening Express</div>
+        <div class="sr-time">~10 mins</div>
+      </div>
+    </div>
+    <div class="sh-card">
+      <h3>📍 Live Status</h3>
+      <div id="shuttle-status" class="sh-status">
+        <div class="sh-dot waiting" id="sh-dot"></div>
+        <span id="sh-status-text">No active shuttle request. Tap a route above.</span>
+      </div>
+      <div id="shuttle-eta" style="margin-top:10px;font-size:.82rem;color:var(--txt3);display:none"></div>
+    </div>
+    <div class="sh-card">
+      <h3>⏰ Operating Hours</h3>
+      <div class="dpair"><span class="dplabel">Weekdays</span><span class="dpval">7:00 AM – 9:00 PM</span></div>
+      <div class="dpair"><span class="dplabel">Saturdays</span><span class="dpval">8:00 AM – 6:00 PM</span></div>
+      <div class="dpair" style="border:none"><span class="dplabel">Sundays</span><span class="dpval" style="color:var(--txt3)">No service</span></div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+</section>
+
+<!-- ═══ COURSE ADVISOR ═══ -->
+<section id="page-advisor" class="page">
+  <div class="ca-wrap">
+    <div class="sec-title">Academic Course Advisor</div>
+    <div class="ca-card">
+      <h3>📋 Course Load Advisor</h3>
+      <div class="form-row"><label>Current Level</label>
+        <select id="ca-level">
+          <option value="100">100 Level</option><option value="200">200 Level</option>
+          <option value="300">300 Level</option><option value="400" selected>400 Level</option>
+          <option value="500">500 Level</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Total Credit Units Registering</label>
+        <input type="number" id="ca-credits" placeholder="e.g. 24" min="1" max="60">
+      </div>
+      <div class="form-row"><label>Current CGPA</label>
+        <input type="number" id="ca-cgpa-val" placeholder="e.g. 3.50" min="0" max="5" step="0.01">
+      </div>
+      <div class="form-row"><label>Number of Carry-Over Courses</label>
+        <input type="number" id="ca-carryover" placeholder="e.g. 2" min="0">
+      </div>
+      <div class="form-row"><label>On Probation?</label>
+        <select id="ca-probation"><option value="no">No</option><option value="yes">Yes</option></select>
+      </div>
+      <button class="btn-primary" onclick="runAdvisor()">Get Advice</button>
+      <div id="ca-result" class="ca-result"></div>
+    </div>
+    <div class="ca-card" style="margin-top:12px">
+      <h3>📌 LASU Credit Rules</h3>
+      <div class="dpair"><span class="dplabel">Min credits/semester</span><span class="dpval">15 units</span></div>
+      <div class="dpair"><span class="dplabel">Max credits/semester</span><span class="dpval">24 units</span></div>
+      <div class="dpair"><span class="dplabel">Max with Dean's approval</span><span class="dpval">30 units</span></div>
+      <div class="dpair"><span class="dplabel">Probation threshold</span><span class="dpval">CGPA below 1.50</span></div>
+      <div class="dpair" style="border:none"><span class="dplabel">Graduation minimum</span><span class="dpval">CGPA ≥ 1.50</span></div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+</section>
+
+<!-- ═══ NOTIFICATIONS ═══ -->
+<section id="page-notifications" class="page">
+  <div class="notif-wrap">
+    <div class="sec-title">Alerts & Reminders</div>
+    <div class="notif-card">
+      <h3>🔔 Push Notifications</h3>
+      <p>Enable browser notifications to get class reminders and campus alerts.</p>
+      <button class="btn-primary" onclick="requestNotifPermission()" id="notif-req-btn">Enable Notifications</button>
+      <div id="notif-status" style="margin-top:10px;font-size:.82rem;color:var(--txt3)"></div>
+    </div>
+    <div class="notif-card">
+      <h3>⚙️ Reminder Settings</h3>
+      <div class="notif-toggle-row">
+        <span class="ntlabel">Class reminders (15 min before)</span>
+        <label class="toggle-sw">
+          <input type="checkbox" id="tog-class" onchange="saveNotifSettings()" checked>
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="notif-toggle-row">
+        <span class="ntlabel">Exam alerts</span>
+        <label class="toggle-sw">
+          <input type="checkbox" id="tog-exam" onchange="saveNotifSettings()" checked>
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="notif-toggle-row">
+        <span class="ntlabel">Shuttle departure alerts</span>
+        <label class="toggle-sw">
+          <input type="checkbox" id="tog-shuttle" onchange="saveNotifSettings()">
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="notif-toggle-row">
+        <span class="ntlabel">Campus news updates</span>
+        <label class="toggle-sw">
+          <input type="checkbox" id="tog-news" onchange="saveNotifSettings()">
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+      </div>
+    </div>
+    <div class="notif-card">
+      <h3>📬 Recent Notifications</h3>
+      <div id="notif-list">
+        <div class="nitem">
+          <div class="nico green">📅</div>
+          <div class="ntxt"><h4>Registration Reminder</h4><p>Course registration closes in 3 days</p></div>
+        </div>
+        <div class="nitem">
+          <div class="nico gold">🚌</div>
+          <div class="ntxt"><h4>Shuttle Notice</h4><p>Route D (SPGS Evening) now runs till 9pm</p></div>
+        </div>
+        <div class="nitem">
+          <div class="nico blue">📢</div>
+          <div class="ntxt"><h4>Campus Update</h4><p>Library is open on Saturdays 9am–3pm</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="notif-card">
+      <h3>⚡ Test Notification</h3>
+      <p style="font-size:.8rem;color:var(--txt3);margin-bottom:12px">Send yourself a test alert right now.</p>
+      <button class="btn-primary" onclick="sendTestNotif()">Send Test Notification</button>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+</section>
+
+</div><!-- end scroll -->
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <div class="ni active" id="nav-home" onclick="showPage('home')"><span class="ico">🏠</span>Home</div>
+  <div class="ni" id="nav-map" onclick="showPage('map')"><span class="ico">🗺️</span>Map</div>
+  <div class="ni" id="nav-cgpa" onclick="showPage('cgpa')"><span class="ico">🎓</span>CGPA</div>
+  <div class="ni" id="nav-timetable" onclick="showPage('timetable')"><span class="ico">📅</span>Schedule</div>
+  <div class="ni" id="nav-profile" onclick="showPage('profile')"><span class="ico">👤</span>Profile</div>
+</nav>
+
+<!-- LOCATION MODAL -->
+<div class="modal-ov" id="loc-modal" onclick="handleModalBg(event,'loc-modal')">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mlname" id="modal-name"></div>
+    <div class="mldesc" id="modal-desc"></div>
+    <div class="chip" style="margin-bottom:14px">🚶 <span id="modal-time"></span> from Main Gate</div>
+    <button class="mclose" onclick="closeModalById('loc-modal')">Close</button>
+  </div>
+</div>
+
+<!-- ADD CLASS MODAL -->
+<div class="modal-ov" id="addclass-modal" onclick="handleModalBg(event,'addclass-modal')">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <h3 style="font-family:'Playfair Display',serif;font-weight:700;margin-bottom:16px;color:var(--txt)">Add Class</h3>
+    <div class="form-row"><label>Course Code / Name</label><input type="text" id="ac-name" placeholder="e.g. CSC 421 – Embedded Systems"></div>
+    <div class="form-row"><label>Day</label>
+      <select id="ac-day">
+        <option>Mon</option><option>Tue</option><option>Wed</option>
+        <option>Thu</option><option>Fri</option><option>Sat</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Start Time</label><input type="time" id="ac-start"></div>
+    <div class="form-row"><label>End Time</label><input type="time" id="ac-end"></div>
+    <div class="form-row"><label>Venue</label><input type="text" id="ac-venue" placeholder="e.g. SCI LT 1"></div>
+    <button class="btn-primary" onclick="addClass()">Save Class</button>
+    <button class="btn-outline" onclick="closeModalById('addclass-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+<script src="lasu-navigator-1.js"></script>
+</body>
+</html>
