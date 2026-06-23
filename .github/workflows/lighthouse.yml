@@ -1,0 +1,54 @@
+name: Lighthouse Audit
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm install -g http-server lighthouse
+
+      - name: Build icons (if SVGs exist)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-bin || true
+          mkdir -p icons
+          if [ -f icons/icon-192.svg ]; then rsvg-convert -w 192 -h 192 icons/icon-192.svg -o icons/icon-192.png || true; fi
+          if [ -f icons/icon-512.svg ]; then rsvg-convert -w 512 -h 512 icons/icon-512.svg -o icons/icon-512.png || true; fi
+
+      - name: Fallback: Build icons with Node (sharp)
+        run: |
+          # Install node and npm deps, then attempt Node-based icon build
+          npm ci || npm install
+          npm run build-icons || true
+
+      - name: Serve site
+        run: |
+          npx http-server -p 8080 &
+          # wait for server
+          for i in {1..10}; do curl -sSf http://127.0.0.1:8080 && break || sleep 1; done
+
+      - name: Run Lighthouse (Desktop)
+        run: |
+          npx lighthouse http://127.0.0.1:8080 --output json --output html --output-path ./lighthouse-report.html --chrome-flags="--no-sandbox --headless"
+
+      - name: Save Lighthouse report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: |
+            ./lighthouse-report.html
+            ./lighthouse-report.report.json || true

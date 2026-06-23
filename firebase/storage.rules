@@ -1,0 +1,21 @@
+// Firebase Storage security rules for LASU Navigator
+// - Profile photos stored under profiles/{uid}/... are writable only by the authenticated user
+// - Profile photos may be publicly readable (optional). Adjust as required.
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Profiles — files uploaded by users
+    match /profiles/{userId}/{allPaths=**} {
+      // Allow upload and modification only by the owning authenticated user
+      allow write: if request.auth != null && request.auth.uid == userId;
+      // Allow read for all viewers (makes avatars public). To restrict, require same uid.
+      allow read: if true;
+    }
+
+    // Deny any other access by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

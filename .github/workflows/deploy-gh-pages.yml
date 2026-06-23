@@ -1,0 +1,43 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install SVG renderer (rsvg-convert)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-bin
+
+      - name: Render PNG icons from SVG (rsvg-convert)
+        run: |
+          mkdir -p icons
+          if [ -f icons/icon-192.svg ]; then rsvg-convert -w 192 -h 192 icons/icon-192.svg -o icons/icon-192.png || true; fi
+          if [ -f icons/icon-512.svg ]; then rsvg-convert -w 512 -h 512 icons/icon-512.svg -o icons/icon-512.png || true; fi
+
+      - name: Fallback: Build icons with Node (sharp)
+        run: |
+          # Install npm deps and run the Node-based generator as a fallback
+          npm ci || npm install
+          npm run build-icons || true
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          publish_branch: gh-pages
+          keep_files: true

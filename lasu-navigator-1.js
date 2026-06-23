@@ -16,6 +16,9 @@ function showPage(id) {
   window.scrollTo(0,0);
 }
 
+// Small helper to escape strings used in element attributes/values
+function escapeHtml(s){ return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 function switchMapTab(v) {
   ['mv','dv','sv','hv'].forEach(t=>{
     document.getElementById(t).classList.remove('active');
@@ -161,7 +164,11 @@ function getDirections() {
   }
   const r=routes[from]?.[to]||routes[to]?.[from];
   if(r){
-    const html=r.steps.map((s,i)=>`<div class="rstep"><div class="snum">${i+1}</div><div>${s}</div></div>`).join('');
+    // Escape step text to avoid accidental HTML injection from route descriptions
+    const esc = (str)=>String(str).replace(/[&"'<>]/g, ch=>({
+      '&':'&amp;', '"':'&quot;', "'":"&#39;", '<':'&lt;', '>':'&gt;'
+    }[ch]));
+    const html=r.steps.map((s,i)=>`<div class="rstep"><div class="snum">${i+1}</div><div>${esc(s)}</div></div>`).join('');
     out.innerHTML=`<div class="rtitle">Step-by-Step Route</div>${html}<div class="rtime">⏱️ ${r.time} walking</div>`;
   }else{
     out.innerHTML=`<div class="rtitle">General Route</div><div class="rstep"><div class="snum">1</div><div>Head to Senate Building roundabout — the main hub</div></div><div class="rstep"><div class="snum">2</div><div>Use main roads N/S/E/W from Senate toward your destination</div></div><div class="rstep"><div class="snum">3</div><div>Ask any security officer near Senate for help</div></div><div class="rtime">⏱️ Varies</div>`;
@@ -279,12 +286,16 @@ const cgpaClasses=[
 ];
 
 function addCourseRow(code='',units='3',grade='A'){
-  const id='cr'+Date.now();
+  const uid = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2,8));
+  const id = 'cr-' + uid;
+  const codeId = id + '-code';
+  const unitsId = id + '-units';
+  const gradeId = id + '-grade';
   const row=document.createElement('div');row.className='course-row';row.id=id;
   row.innerHTML=`
-    <input class="ci" type="text" placeholder="Course code" value="${code}">
-    <input class="cu" type="number" min="1" max="6" placeholder="Units" value="${units}">
-    <select class="cg">
+    <input id="${codeId}" name="course_code[]" class="ci" type="text" placeholder="Course code" value="${escapeHtml(code)}">
+    <input id="${unitsId}" name="course_units[]" class="cu" type="number" min="1" max="6" placeholder="Units" value="${escapeHtml(units)}">
+    <select id="${gradeId}" name="course_grade[]" class="cg">
       ${['A','B','C','D','E','F'].map(g=>`<option ${g===grade?'selected':''}>${g}</option>`).join('')}
     </select>
     <button class="cdel" onclick="document.getElementById('${id}').remove()">✕</button>`;
@@ -492,30 +503,218 @@ if('serviceWorker' in navigator){
 // ═══════════════════════════════
 //  FIREBASE SCAFFOLD
 // ═══════════════════════════════
-// To enable Firebase sync:
-// 1. Create a Firebase project at console.firebase.google.com
-// 2. Replace the config below with your project's config
-// 3. Uncomment the code block
-/*
-const firebaseConfig = {
+// Minimal Firebase integration (dynamic loader + helpers)
+// How to use:
+// 1. Create a Firebase project and obtain the web config (apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId)
+// 2. Call `enableFirebase(FIREBASE_CONFIG)` early (e.g., after user signs in or on init)
+// 3. Use `syncToFirebase(profile)` and `loadFromFirebase(matric)` to sync data
+
+let _firebaseEnabled = false;
+let _firebaseDb = null;
+let _firebaseStorage = null;
+let _firebaseAuth = null;
+let _firebaseUser = null;
+
+// Firebase web config (fill with your project's values)
+const FIREBASE_CONFIG = {
   apiKey: "AIzaSyB3e9pejY7EkDO8i5cZ7HX5KUmLGpBWdz8",
   authDomain: "lasu-navigator.firebaseapp.com",
-  databaseURL: "https:lasu-navigator-default-rtdb.firebaseapp.com",
   projectId: "lasu-navigator",
+  storageBucket: "lasu-navigator.firebasestorage.app",
+  messagingSenderId: "128402428847",
+  appId: "1:128402428847:web:eeee2966c791121829155a",
+  measurementId: "G-J0R6H1LBK4"
 };
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-// import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
-// const app = initializeApp(firebaseConfig);
-// const db = getDatabase(app);
-// async function syncToFirebase(profile) {
-//   await set(ref(db, 'students/' + profile.matric), profile);
-// //   showToast('☁️ Synced to cloud!');
-// }
-// async function loadFromFirebase(matric) {
-//   const snap = await get(ref(db, 'students/' + matric));
-//   if(snap.exists()) { profile = snap.val(); renderProfile(); }
-// }
-*/
+
+function _loadScript(src){
+  return new Promise((res, rej)=>{
+    const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);
+  });
+}
+
+async function enableFirebase(config){
+  if(_firebaseEnabled) return true;
+  if(!config || !config.apiKey){
+    console.warn('Firebase config missing - skipping init');
+    return false;
+  }
+  // Load compat libraries so this file can remain non-module
+  try{
+    await _loadScript('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
+    await _loadScript('https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js');
+    await _loadScript('https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js');
+    await _loadScript('https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js');
+  }catch(e){
+    console.error('Failed to load Firebase SDKs',e);return false;
+  }
+  try{
+    firebase.initializeApp(config);
+    _firebaseDb = firebase.firestore();
+    _firebaseStorage = firebase.storage();
+    _firebaseAuth = firebase.auth();
+    // Monitor auth state
+    _firebaseAuth.onAuthStateChanged(user=>{
+      _firebaseUser = user || null;
+      // update UI
+      const btn = document.getElementById('cloud-btn');
+      if(btn){
+        btn.disabled = false;
+        if(_firebaseUser){
+          btn.textContent = `☁️ ${_firebaseUser.displayName||'Cloud'}`;
+          btn.setAttribute('aria-pressed','true');
+          btn.title = 'Cloud Sync (signed in)';
+        } else {
+          btn.textContent = '☁️';
+          btn.setAttribute('aria-pressed','false');
+          btn.title = 'Cloud Sync (not signed in)';
+        }
+      }
+    });
+    _firebaseEnabled = true;
+    showToast('☁️ Firebase enabled');
+    return true;
+  }catch(e){console.error('Firebase init error',e);return false}
+}
+
+async function syncToFirebase(profileObj){
+  if(!_firebaseEnabled || !_firebaseDb) return false;
+  if(!profileObj) return false;
+  try{
+    if(_firebaseUser && _firebaseUser.uid){
+      // Save under authenticated user's doc
+      await _firebaseDb.collection('users').doc(_firebaseUser.uid).set({profile:profileObj}, {merge:true});
+    } else if(profileObj.matric){
+      await _firebaseDb.collection('students').doc(profileObj.matric).set(profileObj, {merge:true});
+    } else {
+      return false;
+    }
+    showToast('☁️ Profile synced');
+    return true;
+  }catch(e){console.error('syncToFirebase failed',e);showToast('Sync failed');return false}
+}
+
+async function loadFromFirebase(matric){
+  if(!_firebaseEnabled || !_firebaseDb) return null;
+  try{
+    if(_firebaseUser && _firebaseUser.uid){
+      const doc = await _firebaseDb.collection('users').doc(_firebaseUser.uid).get();
+      if(doc.exists && doc.data().profile){ profile = doc.data().profile; renderProfile(); showToast('☁️ Profile loaded'); return profile; }
+      return null;
+    } else {
+      const doc = await _firebaseDb.collection('students').doc(matric).get();
+      if(doc.exists){ profile = doc.data(); renderProfile(); showToast('☁️ Profile loaded'); return profile; }
+      return null;
+    }
+  }catch(e){console.error('loadFromFirebase failed',e);return null}
+}
+
+async function uploadProfilePhoto(file, matric){
+  if(!_firebaseEnabled || !_firebaseStorage) return null;
+  if(!file || !matric) return null;
+  try{
+    const key = _firebaseUser && _firebaseUser.uid ? _firebaseUser.uid : matric;
+    const ref = _firebaseStorage.ref().child(`profiles/${key}/${Date.now()}_${file.name}`);
+    const snap = await ref.put(file);
+    const url = await snap.ref.getDownloadURL();
+    return url;
+  }catch(e){console.error('uploadProfilePhoto failed',e);return null}
+}
+
+// Authentication helpers
+async function signInWithGoogle(){
+  if(!_firebaseEnabled) await enableFirebase(FIREBASE_CONFIG);
+  if(!_firebaseAuth) return false;
+  try{
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await _firebaseAuth.signInWithPopup(provider);
+    showToast('🔐 Signed in');
+    return true;
+  }catch(e){console.error('signIn failed',e);showToast('Sign-in failed');return false}
+}
+
+async function signOutFirebase(){
+  if(!_firebaseAuth) return;
+  try{ await _firebaseAuth.signOut(); showToast('🔓 Signed out'); }catch(e){console.error(e)}
+}
+
+// UI handler for cloud button
+function handleCloudBtn(){
+  const btn = document.getElementById('cloud-btn');
+  console.log('Cloud button clicked', {enabled:_firebaseEnabled, user:_firebaseUser});
+  // Ensure Firebase SDKs are loaded when user wants cloud
+  if(!_firebaseEnabled){
+    enableFirebase(FIREBASE_CONFIG).then(ok=>{
+      if(ok){
+        // show modal to let user choose sign-in method
+        showAuthModal();
+      } else {
+        showToast('Unable to init cloud sync');
+      }
+    }).catch(e=>{console.error('enableFirebase failed',e);showToast('Unable to init cloud sync')});
+    return;
+  }
+  // If enabled but not signed in, show modal
+  if(!_firebaseUser){ showAuthModal(); return; }
+  // If signed in, sign out
+  signOutFirebase();
+}
+
+function showAuthModal(){
+  const m = document.getElementById('auth-modal'); if(!m) return; m.classList.add('open');
+}
+function closeAuthModal(){ const m=document.getElementById('auth-modal'); if(!m) return; m.classList.remove('open'); }
+
+async function signInWithEmail(){
+  const email = (document.getElementById('auth-email')||{}).value||'';
+  const pass = (document.getElementById('auth-pass')||{}).value||'';
+  if(!email||!pass){ showToast('Enter email and password'); return; }
+  try{
+    if(!_firebaseEnabled) await enableFirebase(FIREBASE_CONFIG);
+    await _firebaseAuth.signInWithEmailAndPassword(email,pass);
+    showToast('🔐 Signed in');
+    closeAuthModal();
+  }catch(e){ console.error('Email sign-in failed',e); showToast('Sign-in failed'); }
+}
+
+async function signUpWithEmail(){
+  const email = (document.getElementById('auth-email')||{}).value||'';
+  const pass = (document.getElementById('auth-pass')||{}).value||'';
+  if(!email||!pass){ showToast('Enter email and password'); return; }
+  try{
+    if(!_firebaseEnabled) await enableFirebase(FIREBASE_CONFIG);
+    const res = await _firebaseAuth.createUserWithEmailAndPassword(email,pass);
+    // Optionally set displayName from profile
+    if(profile && profile.name){ await res.user.updateProfile({displayName: profile.name}); }
+    showToast('✅ Account created');
+    closeAuthModal();
+  }catch(e){ console.error('Sign-up failed',e); showToast('Sign-up failed'); }
+}
+
+async function resetPassword(){
+  const email = (document.getElementById('auth-email')||{}).value||'';
+  if(!email){ showToast('Enter email to reset'); return; }
+  try{ await _firebaseAuth.sendPasswordResetEmail(email); showToast('Reset email sent'); }
+  catch(e){ console.error('Reset failed',e); showToast('Reset failed'); }
+}
+
+// Wire saveProfile to optionally sync when Firebase is enabled
+const _origSaveProfile = saveProfile;
+saveProfile = function(){
+  // call original implementation to save to localStorage
+  _origSaveProfile();
+  // If firebase is enabled and profile now exists, try sync (+ upload photo if present)
+  (async ()=>{
+    if(!_firebaseEnabled) return;
+    if(!profile) return;
+    // If profile.photo is a File object (from file input) upload it
+    const fi=document.getElementById('photo-input');
+    if(fi && fi.files && fi.files[0]){
+      const url = await uploadProfilePhoto(fi.files[0], profile.matric);
+      if(url){ profile.photo = url; localStorage.setItem('lasu_profile', JSON.stringify(profile)); renderProfile(); }
+    }
+    await syncToFirebase(profile);
+  })();
+}
 
 // ═══════════════════════════════
 //  INIT
@@ -551,4 +750,10 @@ window.onload=()=>{
 
   // Offline check
   if(!navigator.onLine) document.getElementById('offline-banner').classList.add('show');
+
+  // Cloud sync button: reflect signed-in state
+  const cloudBtn = document.getElementById('cloud-btn');
+  if(cloudBtn){
+    cloudBtn.textContent = _firebaseUser ? `☁️ ${_firebaseUser.displayName||'Cloud'}` : '☁️';
+  }
 };

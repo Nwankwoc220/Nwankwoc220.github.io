@@ -1,0 +1,11 @@
+{
+  "name": "lasu-navigator",
+  "version": "1.0.0",
+  "description": "LASU Navigator - static PWA",
+  "scripts": {
+    "build-icons": "node tools/generate-icons.js"
+  },
+  "dependencies": {
+    "sharp": "^0.32.0"
+  }
+}
