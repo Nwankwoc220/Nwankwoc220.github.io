@@ -188,6 +188,7 @@ function saveProfile() {
   const finish=(photo)=>{
     profile={name,matric,reg:document.getElementById('inp-reg').value.trim(),faculty:document.getElementById('inp-faculty').value,dept:document.getElementById('inp-dept').value.trim(),level:document.getElementById('inp-level').value,phone:document.getElementById('inp-phone').value.trim(),photo};
     localStorage.setItem('lasu_profile',JSON.stringify(profile));
+    if(window.saveProfileToFirebase){window.saveProfileToFirebase(profile);}
     renderProfile();showToast('✅ Profile saved!');
   };
   const fi=document.getElementById('photo-input');
