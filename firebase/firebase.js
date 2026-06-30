@@ -39,6 +39,7 @@
         && (document.querySelector('[name="matric"], #matric, input[placeholder*="Matric"]').value = data.matric || '');
       // Also update localStorage as fallback
       localStorage.setItem('lasuProfile', JSON.stringify(data));
+      if (window.saveProfileToFirebase) window.saveProfileToFirebase(data);
       console.log('✅ Profile loaded from Firestore');
     }
   });
