@@ -50,7 +50,7 @@ body{font-family:var(--font-sans);background:var(--bg);color:var(--txt);min-heig
   bottom: 0;
   left: 0;
   right: 0;
-  height: 64px;
+  min-height: 64px;
   display: flex;
   align-items: stretch;
   padding-bottom: env(safe-area-inset-bottom, 0px);

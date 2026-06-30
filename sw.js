@@ -1,4 +1,4 @@
-const CACHE = 'lasu-nav-v3';
+const CACHE = 'lasu-nav-v4';
 const ASSETS = [
   '/',
   '/index.html',
