@@ -37,15 +37,39 @@ self.addEventListener('fetch', event => {
     caches.match(event.request).then(cached => {
       if (cached) return cached;
       return fetch(event.request).then(networkRes => {
-        // Optionally cache new requests here if you want a runtime cache
         return networkRes;
       }).catch(() => {
-        // If request expects HTML (navigation) return the cached index.html for SPA
         const accept = event.request.headers.get('accept') || '';
-        // Use the app's start URL as the offline fallback (now index.html).
         if (accept.includes('text/html')) return caches.match('/index.html');
         return caches.match('/index.html');
       });
+    })
+  );
+});
+
+self.addEventListener('push', event => {
+  const payload = event.data && event.data.json ? event.data.json() : {};
+  const title = payload.title || 'LASU Navigator';
+  const body = payload.body || 'You have a new campus update.';
+  const options = {
+    body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: payload.data || {}
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('/index.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow('/index.html');
     })
   );
 });

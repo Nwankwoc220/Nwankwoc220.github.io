@@ -1,23 +1,25 @@
 // Firestore security rules for LASU Navigator
 // - Users store: users/{uid} — only the authenticated user may read/write their own data
-// - Students store: students/{matric} — readable by anyone (public), writes disabled to prevent abuse
+// - Students store: students/{uid} — readable by anyone, writable only by the owning authenticated user
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Per-user data
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Legacy student records - allow read, but do not allow public writes
-    match /students/{matric} {
+    match /students/{studentId} {
       allow read: if true;
-      allow write: if false; // Only migrate via trusted backend or admin SDK
+      allow write: if request.auth != null && request.auth.uid == studentId;
     }
 
-    // Deny anything else by default
+    match /students/{studentId}/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == studentId;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

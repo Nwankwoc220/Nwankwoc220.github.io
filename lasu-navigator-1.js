@@ -444,21 +444,21 @@ function runAdvisor(){
 // ═══════════════════════════════
 //  NOTIFICATIONS
 // ═══════════════════════════════
-function requestNotifPermission(){
+async function requestNotifPermission(){
   if(!('Notification' in window)){showToast('Browser does not support notifications');return;}
-  Notification.requestPermission().then(p=>{
-    const btn=document.getElementById('notif-req-btn');
-    const st=document.getElementById('notif-status');
-    if(p==='granted'){
-      btn.textContent='✅ Notifications Enabled';
-      btn.style.background='var(--green2)';
-      st.textContent='You will receive class reminders and campus alerts.';
-      showToast('🔔 Notifications enabled!');
-    }else{
-      st.textContent='Permission denied. You can re-enable in your browser settings.';
-      showToast('Notifications blocked — check browser settings');
-    }
-  });
+  const p=await Notification.requestPermission();
+  const btn=document.getElementById('notif-req-btn');
+  const st=document.getElementById('notif-status');
+  if(p==='granted'){
+    btn.textContent='✅ Notifications Enabled';
+    btn.style.background='var(--green2)';
+    st.textContent='You will receive class reminders and campus alerts.';
+    if(window.requestFirebaseNotifications){ await window.requestFirebaseNotifications(); }
+    showToast('🔔 Notifications enabled!');
+  }else{
+    st.textContent='Permission denied. You can re-enable in your browser settings.';
+    showToast('Notifications blocked — check browser settings');
+  }
 }
 
 function scheduleLocalNotif(title,body,delayMs){
@@ -497,8 +497,8 @@ function saveNotifSettings(){
 //  SERVICE WORKER (offline)
 // ═══════════════════════════════
 if('serviceWorker' in navigator){
-  // Register the static service worker at site root for predictable caching
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(()=>{});
 }
 
 // ═══════════════════════════════

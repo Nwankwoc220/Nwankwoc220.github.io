@@ -104,7 +104,7 @@ npm install -g firebase-tools
 # login
 firebase login
 # deploy rules
-firebase deploy --only firestore:rules,storage
+npm run firebase:deploy
 ```
 
 How to decode the placeholders locally (PowerShell):
