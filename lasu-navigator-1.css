@@ -40,9 +40,12 @@ body{font-family:var(--font-sans);background:var(--bg);color:var(--txt);min-heig
 .scroll{margin-top:var(--head-h);padding-bottom:calc(var(--nav-h)+16px)}
 
 /* PAGES */
-.page{display:none;animation:fadeUp .28s ease}
+.page{display:none;animation:fadeUp .28s ease;padding-bottom:92px}
 .page.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.formwrap{padding-bottom:92px}
+#profile-form .btn-primary{margin-bottom:10px}
 
 /* BOTTOM NAV */
 .bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;box-shadow:0 -4px 20px rgba(0,0,0,.08)}
