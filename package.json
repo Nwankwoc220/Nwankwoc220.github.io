@@ -4,7 +4,8 @@
   "description": "LASU Navigator - static PWA",
   "scripts": {
     "build-icons": "node tools/generate-icons.js",
-    "firebase:deploy": "firebase deploy --only firestore:rules,storage"
+    "firebase:deploy": "firebase deploy --only firestore:rules,storage",
+    "firebase:set-admin": "node tools/set-admin-claim.js"
   },
   "dependencies": {
     "sharp": "^0.32.6"

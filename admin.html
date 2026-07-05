@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LASU Navigator Admin</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Arial, sans-serif; }
+    body { margin: 0; background: #f5f7fb; color: #1a233a; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 24px; }
+    .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.08); margin-bottom: 16px; }
+    input, textarea, button { width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; border: 1px solid #d7deeb; margin-top: 8px; font-size: 1rem; }
+    button { background: #0a5c2f; color: white; border: none; cursor: pointer; font-weight: 600; }
+    button.secondary { background: #44546a; }
+    .meta { color: #5d6b86; font-size: .95rem; margin-top: 6px; }
+    .ann-item { border: 1px solid #e6ebf5; border-radius: 10px; padding: 12px; margin-top: 10px; }
+    .ann-item strong { display: block; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="admin-panel" style="display:none;">
+      <div class="card">
+        <h1>🛡️ LASU Navigator Admin</h1>
+        <p class="meta">Signed in as <strong id="admin-user">...</strong></p>
+        <p>Registered students: <strong id="student-count">...</strong></p>
+        <button class="secondary" onclick="logoutAdmin()">🚪 Sign out</button>
+      </div>
+
+      <div class="card">
+        <h2>Post Announcement</h2>
+        <input id="ann-title" placeholder="Announcement title" />
+        <textarea id="ann-body" placeholder="Message body" rows="5"></textarea>
+        <button onclick="postAnnouncement()">📢 Send to All Students</button>
+      </div>
+
+      <div class="card">
+        <h2>Recent Announcements</h2>
+        <div id="announcement-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyB3e9pejY7EkDO8i5cZ7HX5KUmLGpBWdz8',
+      authDomain: 'lasu-navigator.firebaseapp.com',
+      projectId: 'lasu-navigator',
+      storageBucket: 'lasu-navigator.firebasestorage.app',
+      messagingSenderId: '128402428847',
+      appId: '1:128402428847:web:eeee2966c791121829155a',
+      measurementId: 'G-J0R6H1LBK4'
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    async function loadStudentCount() {
+      const snap = await getDocs(collection(db, 'students'));
+      const countEl = document.getElementById('student-count');
+      if (countEl) countEl.textContent = snap.size;
+    }
+
+    async function loadAnnouncements() {
+      const list = document.getElementById('announcement-list');
+      if (!list) return;
+      const q = query(collection(db, 'announcements'), orderBy('timestamp', 'desc'));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        list.innerHTML = '<p class="meta">No announcements yet.</p>';
+        return;
+      }
+      list.innerHTML = snap.docs.map((docSnap) => {
+        const data = docSnap.data();
+        const time = new Date(data.timestamp || 0).toLocaleString();
+        return `
+          <div class="ann-item">
+            <strong>${data.title || 'Untitled announcement'}</strong>
+            <div>${data.body || ''}</div>
+            <div class="meta">By ${data.author || 'Admin'} · ${time}</div>
+          </div>`;
+      }).join('');
+    }
+
+    async function initAdmin() {
+      document.getElementById('admin-panel').style.display = 'block';
+      await loadStudentCount();
+      await loadAnnouncements();
+    }
+
+    window.postAnnouncement = async () => {
+      const title = document.getElementById('ann-title').value.trim();
+      const body = document.getElementById('ann-body').value.trim();
+      if (!title || !body) {
+        alert('Please enter both a title and a message.');
+        return;
+      }
+      await addDoc(collection(db, 'announcements'), {
+        title,
+        body,
+        timestamp: Date.now(),
+        author: auth.currentUser?.email || auth.currentUser?.uid || 'admin'
+      });
+      document.getElementById('ann-title').value = '';
+      document.getElementById('ann-body').value = '';
+      await loadAnnouncements();
+      alert('✅ Announcement posted!');
+    };
+
+    window.logoutAdmin = async () => {
+      await signOut(auth);
+      window.location.href = '/';
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = '/';
+        return;
+      }
+      try {
+        const token = await user.getIdTokenResult();
+        if (!token.claims?.admin) {
+          window.location.href = '/';
+          return;
+        }
+        document.getElementById('admin-user').textContent = user.email || user.uid;
+        await initAdmin();
+      } catch (error) {
+        console.error('Admin gate failed', error);
+        window.location.href = '/';
+      }
+    });
+  </script>
+</body>
+</html>

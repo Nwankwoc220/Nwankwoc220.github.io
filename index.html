@@ -52,8 +52,8 @@
       <div class="qcard" onclick="showPage('timetable')">
         <div class="qi">📅</div><div class="qt">Timetable</div><div class="qs">My schedule</div>
       </div>
-      <div class="qcard" onclick="showPage('shuttle')">
-        <div class="qi">🚌</div><div class="qt">Shuttle</div><div class="qs">Bus tracker</div>
+      <div class="qcard" onclick="showPage('links')">
+        <div class="qi">🔗</div><div class="qt">Useful Links</div><div class="qs">School portals & tools</div>
       </div>
       <div class="qcard" onclick="showPage('advisor')">
         <div class="qi">📋</div><div class="qt">Advisor</div><div class="qs">Course guide</div>
@@ -72,6 +72,9 @@
       </div>
       <div class="lrow" onclick="showPage('profile')">
         <div class="lrow-l"><div class="lrow-ic">👤</div><div class="lrow-t">Student Profile</div></div><div class="lrow-a">→</div>
+      </div>
+      <div class="lrow" onclick="showPage('links')">
+        <div class="lrow-l"><div class="lrow-ic">🔗</div><div class="lrow-t">Useful Links</div></div><div class="lrow-a">→</div>
       </div>
       <a class="lrow" href="https://lidc.lasu.edu.ng" target="_blank">
         <div class="lrow-l"><div class="lrow-ic">🌐</div><div class="lrow-t">Student Portal (LIDC)</div></div><div class="lrow-a">↗</div>
@@ -396,47 +399,30 @@
   </div>
 </section>
 
-<!-- ═══ SHUTTLE ═══ -->
-<section id="page-shuttle" class="page">
-  <div class="sh-wrap">
-    <div class="sec-title">Campus Shuttle Service</div>
-    <div class="sh-card">
-      <h3>🚌 LASU Bus Routes</h3>
-      <p>Tap a route to request pickup (simulated — LASU shuttle tracking is not yet live)</p>
-      <div class="sh-route" onclick="requestShuttle('Gate → Senate → Library')">
-        <div class="sr-dot"></div>
-        <div class="sr-name">Route A: Gate → Senate → Library</div>
-        <div class="sr-time">~12 mins</div>
-      </div>
-      <div class="sh-route" onclick="requestShuttle('Gate → SUB → Arts → Hostels')">
-        <div class="sr-dot"></div>
-        <div class="sr-name">Route B: Gate → SUB → Arts → Hostels</div>
-        <div class="sr-time">~15 mins</div>
-      </div>
-      <div class="sh-route" onclick="requestShuttle('Gate → Medicine → Engineering → Sports')">
-        <div class="sr-dot"></div>
-        <div class="sr-name">Route C: Gate → Medicine → Engineering → Sports</div>
-        <div class="sr-time">~22 mins</div>
-      </div>
-      <div class="sh-route" onclick="requestShuttle('SPGS Evening Express: Gate → SPGS')">
-        <div class="sr-dot"></div>
-        <div class="sr-name">Route D: SPGS Evening Express</div>
-        <div class="sr-time">~10 mins</div>
+<!-- ═══ USEFUL LINKS ═══ -->
+<section id="page-links" class="page">
+  <div class="ca-wrap">
+    <div class="sec-title">Useful Links</div>
+    <div class="ca-card">
+      <h3>🔗 Quick Access</h3>
+      <div class="links-list">
+        <a class="lrow" href="https://lidc.lasu.edu.ng" target="_blank">
+          <div class="lrow-l"><div class="lrow-ic">🌐</div><div class="lrow-t">Student Portal (LIDC)</div></div><div class="lrow-a">↗</div>
+        </a>
+        <a class="lrow" href="https://www.lasu.edu.ng" target="_blank">
+          <div class="lrow-l"><div class="lrow-ic">🏛️</div><div class="lrow-t">LASU Official Website</div></div><div class="lrow-a">↗</div>
+        </a>
+        <a class="lrow" href="https://mail.google.com" target="_blank">
+          <div class="lrow-l"><div class="lrow-ic">📧</div><div class="lrow-t">Student Email</div></div><div class="lrow-a">↗</div>
+        </a>
+        <a class="lrow" href="https://www.google.com/maps" target="_blank">
+          <div class="lrow-l"><div class="lrow-ic">🗺️</div><div class="lrow-t">Campus Map (Google Maps)</div></div><div class="lrow-a">↗</div>
+        </a>
       </div>
     </div>
-    <div class="sh-card">
-      <h3>📍 Live Status</h3>
-      <div id="shuttle-status" class="sh-status">
-        <div class="sh-dot waiting" id="sh-dot"></div>
-        <span id="sh-status-text">No active shuttle request. Tap a route above.</span>
-      </div>
-      <div id="shuttle-eta" style="margin-top:10px;font-size:.82rem;color:var(--txt3);display:none"></div>
-    </div>
-    <div class="sh-card">
-      <h3>⏰ Operating Hours</h3>
-      <div class="dpair"><span class="dplabel">Weekdays</span><span class="dpval">7:00 AM – 9:00 PM</span></div>
-      <div class="dpair"><span class="dplabel">Saturdays</span><span class="dpval">8:00 AM – 6:00 PM</span></div>
-      <div class="dpair" style="border:none"><span class="dplabel">Sundays</span><span class="dpval" style="color:var(--txt3)">No service</span></div>
+    <div class="ca-card" style="margin-top:12px">
+      <h3>🧩 Backend Ready</h3>
+      <p>Firestore handles student profile sync and notifications. A MySQL-backed admin/API layer can be connected later for richer analytics and admin dashboards.</p>
     </div>
     <div style="height:16px"></div>
   </div>
@@ -509,9 +495,9 @@
         </label>
       </div>
       <div class="notif-toggle-row">
-        <span class="ntlabel">Shuttle departure alerts</span>
+        <span class="ntlabel">Campus news updates</span>
         <label class="toggle-sw">
-          <input type="checkbox" id="tog-shuttle" onchange="saveNotifSettings()">
+          <input type="checkbox" id="tog-news" onchange="saveNotifSettings()">
           <div class="toggle-track"></div><div class="toggle-thumb"></div>
         </label>
       </div>
@@ -531,8 +517,8 @@
           <div class="ntxt"><h4>Registration Reminder</h4><p>Course registration closes in 3 days</p></div>
         </div>
         <div class="nitem">
-          <div class="nico gold">🚌</div>
-          <div class="ntxt"><h4>Shuttle Notice</h4><p>Route D (SPGS Evening) now runs till 9pm</p></div>
+          <div class="nico gold">�</div>
+          <div class="ntxt"><h4>Useful Links</h4><p>Campus portals and quick access tools are ready for use</p></div>
         </div>
         <div class="nitem">
           <div class="nico blue">📢</div>

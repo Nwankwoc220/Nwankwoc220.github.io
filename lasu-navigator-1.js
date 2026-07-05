@@ -1,7 +1,7 @@
 // ═══════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════
-const PAGES = ['home','map','cgpa','timetable','profile','shuttle','advisor','notifications'];
+const PAGES = ['home','map','cgpa','timetable','profile','links','advisor','notifications'];
 function showPage(id) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -380,27 +380,6 @@ function deleteClass(day,idx){
 }
 
 // ═══════════════════════════════
-//  SHUTTLE (simulated)
-// ═══════════════════════════════
-function requestShuttle(route){
-  const dot=document.getElementById('sh-dot');
-  const txt=document.getElementById('sh-status-text');
-  const eta=document.getElementById('shuttle-eta');
-  dot.className='sh-dot waiting';
-  txt.textContent='Requesting: '+route+' …';
-  eta.style.display='none';
-  setTimeout(()=>{
-    dot.className='sh-dot running';
-    txt.textContent='✅ Shuttle confirmed: '+route;
-    const mins=Math.floor(Math.random()*8)+3;
-    eta.textContent=`🚌 Estimated arrival at pickup: ${mins} minutes`;
-    eta.style.display='block';
-    showToast('🚌 Shuttle on the way! ~'+mins+' mins');
-    if(document.getElementById('tog-shuttle').checked) scheduleLocalNotif('Shuttle arriving',`Your shuttle (${route}) arrives in ${mins} mins`,mins*60*1000);
-  },2000);
-}
-
-// ═══════════════════════════════
 //  COURSE ADVISOR
 // ═══════════════════════════════
 function runAdvisor(){
@@ -489,7 +468,7 @@ function sendTestNotif(){
 }
 
 function saveNotifSettings(){
-  const s={class:document.getElementById('tog-class').checked,exam:document.getElementById('tog-exam').checked,shuttle:document.getElementById('tog-shuttle').checked,news:document.getElementById('tog-news').checked};
+  const s={class:document.getElementById('tog-class').checked,exam:document.getElementById('tog-exam').checked,news:document.getElementById('tog-news').checked};
   localStorage.setItem('lasu_notif',JSON.stringify(s));
 }
 
@@ -736,7 +715,7 @@ window.onload=()=>{
   if(ns){
     document.getElementById('tog-class').checked=ns.class??true;
     document.getElementById('tog-exam').checked=ns.exam??true;
-    document.getElementById('tog-shuttle').checked=ns.shuttle??false;
+
     document.getElementById('tog-news').checked=ns.news??false;
   }
 
