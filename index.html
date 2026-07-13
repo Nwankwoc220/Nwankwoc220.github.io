@@ -20,9 +20,9 @@
 <header class="hdr">
   <div class="logo"><div class="logo-dot"></div>LASU NAVIGATOR</div>
   <div class="hdr-actions">
-    <button class="hdr-btn" onclick="window.location.href='admin.html'" title="Admin">🛡️</button>
     <button class="hdr-btn notif-badge" onclick="showPage('notifications')" title="Notifications">🔔</button>
     <button class="hdr-btn" onclick="toggleTheme()">🌓</button>
+    <button class="hdr-btn" onclick="signOutUser()" title="Sign out">🚪</button>
   </div>
 </header>
 
@@ -584,5 +584,79 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 <script src="lasu-navigator-1.js"></script>
+
+<!-- Auth Guard + Announcements from Firestore -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: 'AIzaSyB3e9pejY7EkDO8i5cZ7HX5KUmLGpBWdz8',
+    authDomain: 'lasu-navigator.firebaseapp.com',
+    projectId: 'lasu-navigator',
+    storageBucket: 'lasu-navigator.firebasestorage.app',
+    messagingSenderId: '128402428847',
+    appId: '1:128402428847:web:eeee2966c791121829155a',
+    measurementId: 'G-J0R6H1LBK4'
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ── Auth Guard ──────────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Show user's name in hero greeting
+    const name = user.displayName || user.email?.split('@')[0] || 'Lasuite';
+    const heroEl = document.getElementById('hero-name');
+    if (heroEl) heroEl.textContent = `Welcome, ${name}! 👋`;
+
+    // Load announcements from Firestore into notifications page
+    await loadAnnouncements();
+  });
+
+  // ── Load Admin Announcements ────────────────────────────────
+  async function loadAnnouncements() {
+    try {
+      const q = query(collection(db, 'announcements'), orderBy('timestamp', 'desc'));
+      const snap = await getDocs(q);
+      if (snap.empty) return;
+
+      const list = document.getElementById('notif-list');
+      if (!list) return;
+
+      // Prepend announcements above existing static notifications
+      const announcementHTML = snap.docs.map(docSnap => {
+        const data = docSnap.data();
+        const time = new Date(data.timestamp || 0).toLocaleDateString();
+        return `
+          <div class="nitem">
+            <div class="nico blue">📢</div>
+            <div class="ntxt">
+              <h4>${data.title || 'Announcement'}</h4>
+              <p>${data.body || ''}</p>
+              <span style="font-size:.75rem;color:var(--txt3)">${time}</span>
+            </div>
+          </div>`;
+      }).join('');
+
+      list.insertAdjacentHTML('afterbegin', announcementHTML);
+    } catch (e) {
+      console.warn('Could not load announcements:', e);
+    }
+  }
+
+  // ── Sign Out (accessible globally) ─────────────────────────
+  window.signOutUser = async () => {
+    await signOut(auth);
+    window.location.href = 'login.html';
+  };
+</script>
 </body>
 </html>

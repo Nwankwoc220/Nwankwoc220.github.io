@@ -15,9 +15,15 @@
     .meta { color: #5d6b86; font-size: .95rem; margin-top: 6px; }
     .ann-item { border: 1px solid #e6ebf5; border-radius: 10px; padding: 12px; margin-top: 10px; }
     .ann-item strong { display: block; margin-bottom: 4px; }
+    #gate-msg { display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; color:#5d6b86; }
   </style>
 </head>
 <body>
+
+  <!-- Shown while checking auth -->
+  <div id="gate-msg">Verifying access...</div>
+
+  <!-- Admin Panel (hidden until verified) -->
   <div class="wrap">
     <div id="admin-panel" style="display:none;">
       <div class="card">
@@ -56,14 +62,23 @@
       measurementId: 'G-J0R6H1LBK4'
     };
 
+    // ✅ Must match ADMIN_EMAILS in login.html
+    const ADMIN_EMAILS = [
+      'nwankwoc220@gmail.com' //  admin email
+    ];
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
 
+    function isAdmin(user) {
+      return user && ADMIN_EMAILS.includes(user.email);
+    }
+
     async function loadStudentCount() {
       const snap = await getDocs(collection(db, 'students'));
-      const countEl = document.getElementById('student-count');
-      if (countEl) countEl.textContent = snap.size;
+      const el = document.getElementById('student-count');
+      if (el) el.textContent = snap.size;
     }
 
     async function loadAnnouncements() {
@@ -87,24 +102,14 @@
       }).join('');
     }
 
-    async function initAdmin() {
-      document.getElementById('admin-panel').style.display = 'block';
-      await loadStudentCount();
-      await loadAnnouncements();
-    }
-
     window.postAnnouncement = async () => {
       const title = document.getElementById('ann-title').value.trim();
       const body = document.getElementById('ann-body').value.trim();
-      if (!title || !body) {
-        alert('Please enter both a title and a message.');
-        return;
-      }
+      if (!title || !body) { alert('Please enter both a title and a message.'); return; }
       await addDoc(collection(db, 'announcements'), {
-        title,
-        body,
+        title, body,
         timestamp: Date.now(),
-        author: auth.currentUser?.email || auth.currentUser?.uid || 'admin'
+        author: auth.currentUser?.email || 'admin'
       });
       document.getElementById('ann-title').value = '';
       document.getElementById('ann-body').value = '';
@@ -114,26 +119,20 @@
 
     window.logoutAdmin = async () => {
       await signOut(auth);
-      window.location.href = '/';
+      window.location.href = 'login.html';
     };
 
+    // Gate: only admins can see this page
     onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = '/';
+      document.getElementById('gate-msg').style.display = 'none';
+      if (!user || !isAdmin(user)) {
+        window.location.href = 'login.html';
         return;
       }
-      try {
-        const token = await user.getIdTokenResult();
-        if (!token.claims?.admin) {
-          window.location.href = '/';
-          return;
-        }
-        document.getElementById('admin-user').textContent = user.email || user.uid;
-        await initAdmin();
-      } catch (error) {
-        console.error('Admin gate failed', error);
-        window.location.href = '/';
-      }
+      document.getElementById('admin-user').textContent = user.email;
+      document.getElementById('admin-panel').style.display = 'block';
+      await loadStudentCount();
+      await loadAnnouncements();
     });
   </script>
 </body>
