@@ -5,51 +5,102 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LASU Navigator Admin</title>
   <style>
-    :root { color-scheme: light dark; font-family: Arial, sans-serif; }
+    :root { font-family: Arial, sans-serif; }
     body { margin: 0; background: #f5f7fb; color: #1a233a; }
     .wrap { max-width: 760px; margin: 0 auto; padding: 24px; }
     .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.08); margin-bottom: 16px; }
-    input, textarea, button { width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; border: 1px solid #d7deeb; margin-top: 8px; font-size: 1rem; }
+    h1, h2 { margin-top: 0; }
+    input, textarea, select, button { width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; border: 1px solid #d7deeb; margin-top: 8px; font-size: 1rem; }
     button { background: #0a5c2f; color: white; border: none; cursor: pointer; font-weight: 600; }
     button.secondary { background: #44546a; }
-    .meta { color: #5d6b86; font-size: .95rem; margin-top: 6px; }
-    .ann-item { border: 1px solid #e6ebf5; border-radius: 10px; padding: 12px; margin-top: 10px; }
-    .ann-item strong { display: block; margin-bottom: 4px; }
-    #gate-msg { display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; color:#5d6b86; }
+    button.danger { background: #c0392b; }
+    .meta { color: #5d6b86; font-size: .9rem; margin-top: 6px; }
+    .item { border: 1px solid #e6ebf5; border-radius: 10px; padding: 12px; margin-top: 10px; }
+    .item strong { display: block; margin-bottom: 4px; }
+    .item-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .item-actions button { padding: 8px; font-size: .85rem; margin-top: 0; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid #e6ebf5; background: white; color: #5d6b86; font-weight: 600; cursor: pointer; font-size: .9rem; }
+    .tab-btn.active { border-color: #0a5c2f; color: #0a5c2f; background: #f0fff4; }
+    .section { display: none; }
+    .section.active { display: block; }
+    #gate-msg { display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; color: #5d6b86; }
+    .badge { background: #0a5c2f; color: white; border-radius: 20px; padding: 2px 8px; font-size: .75rem; margin-left: 6px; }
   </style>
 </head>
 <body>
 
-  <!-- Shown while checking auth -->
   <div id="gate-msg">Verifying access...</div>
 
-  <!-- Admin Panel (hidden until verified) -->
   <div class="wrap">
     <div id="admin-panel" style="display:none;">
+
+      <!-- Header -->
       <div class="card">
         <h1>🛡️ LASU Navigator Admin</h1>
         <p class="meta">Signed in as <strong id="admin-user">...</strong></p>
-        <p>Registered students: <strong id="student-count">...</strong></p>
-        <button class="secondary" onclick="logoutAdmin()">🚪 Sign out</button>
+        <p class="meta">Registered students: <strong id="student-count">...</strong></p>
+        <button class="secondary" style="margin-top:12px" onclick="logoutAdmin()">🚪 Sign out</button>
       </div>
 
-      <div class="card">
-        <h2>Post Announcement</h2>
-        <input id="ann-title" placeholder="Announcement title" />
-        <textarea id="ann-body" placeholder="Message body" rows="5"></textarea>
-        <button onclick="postAnnouncement()">📢 Send to All Students</button>
+      <!-- Section Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchSection('announcements')">📢 Announcements</button>
+        <button class="tab-btn" onclick="switchSection('schedules')">📅 Class Schedules</button>
       </div>
 
-      <div class="card">
-        <h2>Recent Announcements</h2>
-        <div id="announcement-list"></div>
+      <!-- ── Announcements Section ── -->
+      <div id="section-announcements" class="section active">
+        <div class="card">
+          <h2>Post Announcement</h2>
+          <input id="ann-title" placeholder="Announcement title" />
+          <textarea id="ann-body" placeholder="Message body" rows="4"></textarea>
+          <button onclick="postAnnouncement()" style="margin-top:12px">📢 Send to All Students</button>
+        </div>
+        <div class="card">
+          <h2>Recent Announcements</h2>
+          <div id="announcement-list"></div>
+        </div>
       </div>
+
+      <!-- ── Class Schedules Section ── -->
+      <div id="section-schedules" class="section">
+        <div class="card">
+          <h2>Add Class Schedule</h2>
+          <input id="sch-course" placeholder="Course name (e.g. CSC 401)" />
+          <input id="sch-lecturer" placeholder="Lecturer name" />
+          <div class="row">
+            <select id="sch-day">
+              <option value="">Select day</option>
+              <option>Monday</option>
+              <option>Tuesday</option>
+              <option>Wednesday</option>
+              <option>Thursday</option>
+              <option>Friday</option>
+              <option>Saturday</option>
+            </select>
+            <input id="sch-time" type="time" />
+          </div>
+          <input id="sch-venue" placeholder="Venue (e.g. LT1, Block C)" />
+          <input id="sch-duration" placeholder="Duration (e.g. 2 hours)" />
+          <button onclick="addSchedule()" style="margin-top:12px">📅 Add to Timetable</button>
+        </div>
+        <div class="card">
+          <h2>Current Schedules</h2>
+          <div id="schedule-list"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import {
+      getFirestore, collection, addDoc, getDocs,
+      deleteDoc, doc, query, orderBy
+    } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
     import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
     const firebaseConfig = {
@@ -62,42 +113,51 @@
       measurementId: 'G-J0R6H1LBK4'
     };
 
-    // ✅ Must match ADMIN_EMAILS in login.html
     const ADMIN_EMAILS = [
-      'nwankwoc220@gmail.com' //  admin email
+      'your-email@gmail.com' // 👈 Replace with your actual admin email
     ];
+
+    const DAYS_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    function isAdmin(user) {
-      return user && ADMIN_EMAILS.includes(user.email);
-    }
+    function isAdmin(u) { return u && ADMIN_EMAILS.includes(u.email); }
 
+    // ── Tab switching ─────────────────────────────────────────
+    window.switchSection = (name) => {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('section-' + name).classList.add('active');
+      event.target.classList.add('active');
+    };
+
+    // ── Student count ─────────────────────────────────────────
     async function loadStudentCount() {
       const snap = await getDocs(collection(db, 'students'));
       const el = document.getElementById('student-count');
       if (el) el.textContent = snap.size;
     }
 
+    // ── Announcements ─────────────────────────────────────────
     async function loadAnnouncements() {
       const list = document.getElementById('announcement-list');
       if (!list) return;
       const q = query(collection(db, 'announcements'), orderBy('timestamp', 'desc'));
       const snap = await getDocs(q);
-      if (snap.empty) {
-        list.innerHTML = '<p class="meta">No announcements yet.</p>';
-        return;
-      }
-      list.innerHTML = snap.docs.map((docSnap) => {
-        const data = docSnap.data();
+      if (snap.empty) { list.innerHTML = '<p class="meta">No announcements yet.</p>'; return; }
+      list.innerHTML = snap.docs.map(d => {
+        const data = d.data();
         const time = new Date(data.timestamp || 0).toLocaleString();
         return `
-          <div class="ann-item">
-            <strong>${data.title || 'Untitled announcement'}</strong>
+          <div class="item">
+            <strong>${data.title || 'Untitled'}</strong>
             <div>${data.body || ''}</div>
             <div class="meta">By ${data.author || 'Admin'} · ${time}</div>
+            <div class="item-actions">
+              <button class="danger" onclick="deleteAnnouncement('${d.id}')">🗑️ Delete</button>
+            </div>
           </div>`;
       }).join('');
     }
@@ -109,7 +169,8 @@
       await addDoc(collection(db, 'announcements'), {
         title, body,
         timestamp: Date.now(),
-        author: auth.currentUser?.email || 'admin'
+        author: auth.currentUser?.email || 'admin',
+        type: 'announcement'
       });
       document.getElementById('ann-title').value = '';
       document.getElementById('ann-body').value = '';
@@ -117,12 +178,86 @@
       alert('✅ Announcement posted!');
     };
 
+    window.deleteAnnouncement = async (id) => {
+      if (!confirm('Delete this announcement?')) return;
+      await deleteDoc(doc(db, 'announcements', id));
+      await loadAnnouncements();
+    };
+
+    // ── Class Schedules ───────────────────────────────────────
+    async function loadSchedules() {
+      const list = document.getElementById('schedule-list');
+      if (!list) return;
+      const snap = await getDocs(collection(db, 'schedules'));
+      if (snap.empty) { list.innerHTML = '<p class="meta">No schedules yet.</p>'; return; }
+
+      // Sort by day order
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      docs.sort((a, b) => DAYS_ORDER.indexOf(a.day) - DAYS_ORDER.indexOf(b.day));
+
+      list.innerHTML = docs.map(data => `
+        <div class="item">
+          <strong>${data.course || 'Unnamed Course'}</strong>
+          <div>👤 ${data.lecturer || '—'}</div>
+          <div>📅 ${data.day || '—'} · ⏰ ${data.time || '—'} · ⏱ ${data.duration || '—'}</div>
+          <div>📍 ${data.venue || '—'}</div>
+          <div class="item-actions">
+            <button class="danger" onclick="deleteSchedule('${data.id}')">🗑️ Delete</button>
+          </div>
+        </div>`).join('');
+    }
+
+    window.addSchedule = async () => {
+      const course   = document.getElementById('sch-course').value.trim();
+      const lecturer = document.getElementById('sch-lecturer').value.trim();
+      const day      = document.getElementById('sch-day').value;
+      const time     = document.getElementById('sch-time').value;
+      const venue    = document.getElementById('sch-venue').value.trim();
+      const duration = document.getElementById('sch-duration').value.trim();
+
+      if (!course || !day || !time || !venue) {
+        alert('Please fill in at least course, day, time and venue.');
+        return;
+      }
+
+      await addDoc(collection(db, 'schedules'), {
+        course, lecturer, day, time, venue, duration,
+        updatedAt: Date.now(),
+        type: 'schedule'
+      });
+
+      // Also post a notification so students see it
+      await addDoc(collection(db, 'announcements'), {
+        title: `📅 New class: ${course}`,
+        body: `${day} at ${time} in ${venue}${lecturer ? ' — ' + lecturer : ''}`,
+        timestamp: Date.now(),
+        author: auth.currentUser?.email || 'admin',
+        type: 'schedule'
+      });
+
+      ['sch-course','sch-lecturer','sch-venue','sch-duration'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('sch-day').value = '';
+      document.getElementById('sch-time').value = '';
+
+      await loadSchedules();
+      alert('✅ Schedule added! Students will see a notification.');
+    };
+
+    window.deleteSchedule = async (id) => {
+      if (!confirm('Delete this schedule?')) return;
+      await deleteDoc(doc(db, 'schedules', id));
+      await loadSchedules();
+    };
+
+    // ── Sign out ──────────────────────────────────────────────
     window.logoutAdmin = async () => {
       await signOut(auth);
       window.location.href = 'login.html';
     };
 
-    // Gate: only admins can see this page
+    // ── Auth gate ─────────────────────────────────────────────
     onAuthStateChanged(auth, async (user) => {
       document.getElementById('gate-msg').style.display = 'none';
       if (!user || !isAdmin(user)) {
@@ -133,6 +268,7 @@
       document.getElementById('admin-panel').style.display = 'block';
       await loadStudentCount();
       await loadAnnouncements();
+      await loadSchedules();
     });
   </script>
 </body>

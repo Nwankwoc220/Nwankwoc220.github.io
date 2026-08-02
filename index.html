@@ -585,7 +585,7 @@
 <div class="toast" id="toast"></div>
 <script src="lasu-navigator-1.js"></script>
 
-<!-- Auth Guard + Announcements from Firestore -->
+<!-- Auth Guard + Notifications + Timetable from Firestore -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -601,58 +601,155 @@
     measurementId: 'G-J0R6H1LBK4'
   };
 
+  const DAYS_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const DAY_SHORT = { Monday:'Mon', Tuesday:'Tue', Wednesday:'Wed', Thursday:'Thu', Friday:'Fri', Saturday:'Sat' };
+
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
   // ── Auth Guard ──────────────────────────────────────────────
   onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = 'login.html';
-      return;
-    }
+    if (!user) { window.location.href = 'login.html'; return; }
 
-    // Show user's name in hero greeting
     const name = user.displayName || user.email?.split('@')[0] || 'Lasuite';
     const heroEl = document.getElementById('hero-name');
     if (heroEl) heroEl.textContent = `Welcome, ${name}! 👋`;
 
-    // Load announcements from Firestore into notifications page
-    await loadAnnouncements();
+    await Promise.all([loadAnnouncements(), loadSchedules()]);
   });
 
-  // ── Load Admin Announcements ────────────────────────────────
+  // ── Notification badge ──────────────────────────────────────
+  function updateBadge(count) {
+    const btn = document.querySelector('.hdr-btn.notif-badge');
+    if (!btn) return;
+    // Remove old badge span if exists
+    const old = btn.querySelector('.badge-count');
+    if (old) old.remove();
+    if (count > 0) {
+      btn.insertAdjacentHTML('beforeend',
+        `<span class="badge-count" style="
+          position:absolute;top:-4px;right:-4px;
+          background:#e74c3c;color:white;
+          border-radius:50%;width:18px;height:18px;
+          font-size:10px;font-weight:700;
+          display:flex;align-items:center;justify-content:center;
+          pointer-events:none;
+        ">${count > 9 ? '9+' : count}</span>`);
+      btn.style.position = 'relative';
+    }
+  }
+
+  // ── Load Announcements ──────────────────────────────────────
   async function loadAnnouncements() {
     try {
       const q = query(collection(db, 'announcements'), orderBy('timestamp', 'desc'));
       const snap = await getDocs(q);
-      if (snap.empty) return;
 
       const list = document.getElementById('notif-list');
-      if (!list) return;
+      if (!list || snap.empty) return;
 
-      // Prepend announcements above existing static notifications
-      const announcementHTML = snap.docs.map(docSnap => {
+      // Track unread: items newer than last visit
+      const lastSeen = parseInt(localStorage.getItem('lastNotifSeen') || '0');
+      let unread = 0;
+
+      const html = snap.docs.map(docSnap => {
         const data = docSnap.data();
-        const time = new Date(data.timestamp || 0).toLocaleDateString();
+        const ts = data.timestamp || 0;
+        const isNew = ts > lastSeen;
+        if (isNew) unread++;
+        const time = new Date(ts).toLocaleDateString();
+        const icon = data.type === 'schedule' ? '📅' : '📢';
+        const color = data.type === 'schedule' ? 'green' : 'blue';
         return `
-          <div class="nitem">
-            <div class="nico blue">📢</div>
+          <div class="nitem" style="${isNew ? 'border-left:3px solid #e74c3c;padding-left:10px;' : ''}">
+            <div class="nico ${color}">${icon}</div>
             <div class="ntxt">
-              <h4>${data.title || 'Announcement'}</h4>
+              ${isNew ? '<span style="font-size:.7rem;font-weight:700;color:#e74c3c;text-transform:uppercase;">New</span>' : ''}
+              <h4>${data.title || 'Notification'}</h4>
               <p>${data.body || ''}</p>
               <span style="font-size:.75rem;color:var(--txt3)">${time}</span>
             </div>
           </div>`;
       }).join('');
 
-      list.insertAdjacentHTML('afterbegin', announcementHTML);
+      // Replace static placeholder content with live data
+      list.innerHTML = html;
+      updateBadge(unread);
+
+      // Clear badge when user opens notifications
+      document.querySelector('[onclick="showPage(\'notifications\')"]')?.addEventListener('click', () => {
+        localStorage.setItem('lastNotifSeen', Date.now().toString());
+        updateBadge(0);
+      }, { once: false });
+
     } catch (e) {
       console.warn('Could not load announcements:', e);
     }
   }
 
-  // ── Sign Out (accessible globally) ─────────────────────────
+  // ── Load Schedules into Timetable ───────────────────────────
+  async function loadSchedules() {
+    try {
+      const snap = await getDocs(collection(db, 'schedules'));
+      if (snap.empty) return;
+
+      const schedules = snap.docs.map(d => d.data());
+
+      // Group by day
+      const byDay = {};
+      schedules.forEach(s => {
+        const key = DAY_SHORT[s.day] || s.day;
+        if (!byDay[key]) byDay[key] = [];
+        byDay[key].push(s);
+      });
+
+      // Store globally so selectDay() can use it
+      window.__firestoreSchedules = byDay;
+
+      // Render current active day
+      const activeDay = document.querySelector('.ttd.active')?.textContent?.trim() || 'Mon';
+      renderFirestoreTimetable(activeDay);
+
+    } catch (e) {
+      console.warn('Could not load schedules:', e);
+    }
+  }
+
+  // Render timetable for selected day
+  window.renderFirestoreTimetable = (day) => {
+    const list = document.getElementById('tt-list');
+    if (!list) return;
+
+    const schedules = window.__firestoreSchedules?.[day] || [];
+    if (schedules.length === 0) {
+      // Don't clear existing local classes, just prepend a note
+      const existing = list.innerHTML;
+      if (!existing.includes('No admin schedules')) {
+        list.insertAdjacentHTML('afterbegin',
+          `<div style="font-size:.8rem;color:var(--txt3);margin-bottom:8px">No admin schedules for ${day}</div>`);
+      }
+      return;
+    }
+
+    // Sort by time
+    schedules.sort((a, b) => a.time?.localeCompare(b.time));
+
+    const html = schedules.map(s => `
+      <div class="tt-item" style="border-left:3px solid #0a5c2f;">
+        <div class="tt-time">${s.time || '--:--'}</div>
+        <div class="tt-info">
+          <div class="tt-course">${s.course || 'Course'}</div>
+          <div class="tt-venue">📍 ${s.venue || '—'} ${s.lecturer ? '· 👤 ' + s.lecturer : ''}</div>
+          ${s.duration ? `<div class="tt-venue">⏱ ${s.duration}</div>` : ''}
+        </div>
+      </div>`).join('');
+
+    // Prepend admin schedules above local ones
+    list.insertAdjacentHTML('afterbegin', html);
+  };
+
+  // ── Sign Out ────────────────────────────────────────────────
   window.signOutUser = async () => {
     await signOut(auth);
     window.location.href = 'login.html';
