@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LASU Navigator – Login</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #0d1b3e 0%, #1a2f6b 60%, #0a5c2f 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 24px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo h1 { font-size: 1.6rem; color: #0d1b3e; font-weight: 800; letter-spacing: -0.5px; }
+    .logo p { color: #5d6b86; font-size: 0.9rem; margin-top: 4px; }
+
+    /* ── Role Selector ── */
+    #role-screen { display: block; }
+
+    .role-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #44546a;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .role-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .role-btn {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid #d7deeb;
+      border-radius: 12px;
+      background: white;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1a233a;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+
+    .role-btn:hover { border-color: #1a2f6b; background: #f5f7fb; }
+    .role-btn.selected { border-color: #0a5c2f; background: #f0fff4; color: #0a5c2f; }
+
+    .role-btn .role-icon { font-size: 1.4rem; }
+    .role-btn .role-desc { font-size: 0.78rem; color: #5d6b86; font-weight: 400; margin-top: 2px; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: #0d1b3e;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover { background: #1a2f6b; }
+    .btn-primary:disabled { background: #a0aec0; cursor: not-allowed; }
+
+    /* ── Auth Forms ── */
+    #auth-screen { display: none; }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: #1a2f6b;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f0f3fa;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1a2f6b;
+      margin-bottom: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      background: #f0f3fa;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #5d6b86;
+      transition: all 0.2s;
+    }
+
+    .tab.active { background: white; color: #0d1b3e; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+    .form-group { margin-bottom: 16px; }
+
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: #44546a; margin-bottom: 6px; }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #d7deeb;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: #1a2f6b; }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      color: #a0aec0;
+      font-size: 0.85rem;
+    }
+
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e6ebf5; }
+
+    .btn-google {
+      width: 100%;
+      padding: 13px;
+      background: white;
+      color: #1a233a;
+      border: 1.5px solid #d7deeb;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+
+    .btn-google:hover { background: #f5f7fb; }
+    .btn-google img { width: 20px; height: 20px; }
+
+    .error-msg {
+      background: #fff0f0;
+      color: #c0392b;
+      border: 1px solid #f5c6c6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .success-msg {
+      background: #f0fff4;
+      color: #0a5c2f;
+      border: 1px solid #b2dfdb;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .forgot { text-align: right; margin-top: -8px; margin-bottom: 16px; }
+    .forgot a { font-size: 0.82rem; color: #1a2f6b; text-decoration: none; cursor: pointer; }
+
+    .switch-text { text-align: center; margin-top: 20px; font-size: 0.88rem; color: #5d6b86; }
+    .switch-text a { color: #1a2f6b; font-weight: 600; cursor: pointer; text-decoration: none; }
+
+    /* ── Loading ── */
+    #loading { display: none; text-align: center; padding: 20px; color: #5d6b86; }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e6ebf5;
+      border-top-color: #0d1b3e;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="card">
+
+  <div class="logo">
+    <h1>🎓 LASU Navigator</h1>
+    <p>Your campus companion</p>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Signing you in...</p>
+  </div>
+
+  <!-- Step 1: Role Selection -->
+  <div id="role-screen">
+    <span class="role-label">Select your role to continue</span>
+    <div class="role-options">
+      <button class="role-btn" id="role-student" onclick="selectRole('student')">
+        <span class="role-icon">🎓</span>
+        <div>
+          <div>Student</div>
+          <div class="role-desc">Access campus map, timetable, CGPA & more</div>
+        </div>
+      </button>
+      <button class="role-btn" id="role-admin" onclick="selectRole('admin')">
+        <span class="role-icon">🛡️</span>
+        <div>
+          <div>Admin</div>
+          <div class="role-desc">Manage announcements and student data</div>
+        </div>
+      </button>
+    </div>
+    <button class="btn-primary" id="role-continue-btn" onclick="proceedToAuth()" disabled>Continue</button>
+  </div>
+
+  <!-- Step 2: Auth Forms -->
+  <div id="auth-screen">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="role-badge" id="role-badge"></div>
+
+    <div class="error-msg" id="error-msg"></div>
+    <div class="success-msg" id="success-msg"></div>
+
+    <!-- Admin: Google only -->
+    <div id="admin-auth">
+      <p style="font-size:.9rem;color:#5d6b86;margin-bottom:20px">Admin access is via Google sign-in only.</p>
+      <button class="btn-google" onclick="loginWithGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+        Sign in with Google
+      </button>
+    </div>
+
+    <!-- Student: Email/Password + Google -->
+    <div id="student-auth" style="display:none;">
+      <div class="tabs">
+        <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign In</div>
+        <div class="tab" id="tab-register" onclick="switchTab('register')">Register</div>
+      </div>
+
+      <!-- Sign In -->
+      <div id="form-login">
+        <div class="form-group">
+          <label>Email address</label>
+          <input type="email" id="login-email" placeholder="you@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" />
+        </div>
+        <div class="forgot"><a onclick="resetPassword()">Forgot password?</a></div>
+        <button class="btn-primary" onclick="loginWithEmail()">Sign In</button>
+        <div class="divider">or</div>
+        <button class="btn-google" onclick="loginWithGoogle()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+          Continue with Google
+        </button>
+        <p class="switch-text">No account? <a onclick="switchTab('register')">Register</a></p>
+      </div>
+
+      <!-- Register -->
+      <div id="form-register" style="display:none;">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="reg-name" placeholder="e.g. Chisom Nwankwo" />
+        </div>
+        <div class="form-group">
+          <label>Matric Number</label>
+          <input type="text" id="reg-matric" placeholder="e.g. 190301001" />
+        </div>
+        <div class="form-group">
+          <label>Email address</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="reg-password" placeholder="Min. 6 characters" />
+        </div>
+        <button class="btn-primary" onclick="registerWithEmail()">Create Account</button>
+        <div class="divider">or</div>
+        <button class="btn-google" onclick="loginWithGoogle()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+          Continue with Google
+        </button>
+        <p class="switch-text">Have an account? <a onclick="switchTab('login')">Sign In</a></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import {
+    getAuth, onAuthStateChanged, signOut,
+    GoogleAuthProvider, signInWithPopup,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    sendPasswordResetEmail
+  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+  const firebaseConfig = {
+    apiKey: 'AIzaSyB3e9pejY7EkDO8i5cZ7HX5KUmLGpBWdz8',
+    authDomain: 'lasu-navigator.firebaseapp.com',
+    projectId: 'lasu-navigator',
+    storageBucket: 'lasu-navigator.firebasestorage.app',
+    messagingSenderId: '128402428847',
+    appId: '1:128402428847:web:eeee2966c791121829155a',
+    measurementId: 'G-J0R6H1LBK4'
+  };
+
+  // admin emails here
+  const ADMIN_EMAILS = [
+    'nwankwoc220@gmail.com' // 
+  ];
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  let selectedRole = null;
+
+  // ── If already logged in, route to correct page ──────────
+  // Skip anonymous users to avoid redirect loops with old cached sessions
+  onAuthStateChanged(auth, (user) => {
+    if (user && !user.isAnonymous && user.email) {
+      if (ADMIN_EMAILS.includes(user.email)) {
+        window.location.href = 'admin.html';
+      } else {
+        window.location.href = 'index.html';
+      }
+    }
+  });
+
+  // ── Role selection ────────────────────────────────────────
+  window.selectRole = (role) => {
+    selectedRole = role;
+    document.getElementById('role-student').classList.toggle('selected', role === 'student');
+    document.getElementById('role-admin').classList.toggle('selected', role === 'admin');
+    document.getElementById('role-continue-btn').disabled = false;
+  };
+
+  window.proceedToAuth = () => {
+    if (!selectedRole) return;
+    document.getElementById('role-screen').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'block';
+
+    const badge = document.getElementById('role-badge');
+    badge.textContent = selectedRole === 'admin' ? '🛡️ Admin Login' : '🎓 Student Login';
+
+    document.getElementById('admin-auth').style.display = selectedRole === 'admin' ? 'block' : 'none';
+    document.getElementById('student-auth').style.display = selectedRole === 'student' ? 'block' : 'none';
+  };
+
+  window.goBack = () => {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('role-screen').style.display = 'block';
+    clearMessages();
+  };
+
+  // ── Helpers ───────────────────────────────────────────────
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    document.getElementById('success-msg').style.display = 'none';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('success-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    document.getElementById('error-msg').style.display = 'none';
+  }
+
+  function clearMessages() {
+    document.getElementById('error-msg').style.display = 'none';
+    document.getElementById('success-msg').style.display = 'none';
+  }
+
+  function showLoading(show) {
+    document.getElementById('loading').style.display = show ? 'block' : 'none';
+    document.getElementById('role-screen').style.display = 'none';
+    document.getElementById('auth-screen').style.display = show ? 'none' : 'block';
+  }
+
+  function redirect(user) {
+    if (ADMIN_EMAILS.includes(user.email)) {
+      window.location.href = 'admin.html';
+    } else {
+      window.location.href = 'index.html';
+    }
+  }
+
+  async function saveStudentProfile(user, extra = {}) {
+    const ref = doc(db, 'students', user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        fullName: extra.fullName || user.displayName || '',
+        matric: extra.matric || '',
+        email: user.email || '',
+        createdAt: new Date().toISOString()
+      });
+    }
+  }
+
+  // ── Auth actions ──────────────────────────────────────────
+  window.loginWithGoogle = async () => {
+    clearMessages();
+    try {
+      showLoading(true);
+      const result = await signInWithPopup(auth, provider);
+      if (selectedRole === 'admin' && !ADMIN_EMAILS.includes(result.user.email)) {
+        await signOut(auth);
+        showLoading(false);
+        showError('Access denied. This account is not authorised as admin.');
+        return;
+      }
+      if (selectedRole === 'student') await saveStudentProfile(result.user);
+      redirect(result.user);
+    } catch (e) {
+      showLoading(false);
+      showError(friendlyError(e.code));
+    }
+  };
+
+  window.loginWithEmail = async () => {
+    clearMessages();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) return showError('Please enter your email and password.');
+    try {
+      showLoading(true);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      redirect(result.user);
+    } catch (e) {
+      showLoading(false);
+      showError(friendlyError(e.code));
+    }
+  };
+
+  window.registerWithEmail = async () => {
+    clearMessages();
+    const name = document.getElementById('reg-name').value.trim();
+    const matric = document.getElementById('reg-matric').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!name || !matric || !email || !password) return showError('Please fill in all fields.');
+    if (password.length < 6) return showError('Password must be at least 6 characters.');
+    try {
+      showLoading(true);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      await saveStudentProfile(result.user, { fullName: name, matric });
+      redirect(result.user);
+    } catch (e) {
+      showLoading(false);
+      showError(friendlyError(e.code));
+    }
+  };
+
+  window.resetPassword = async () => {
+    clearMessages();
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) return showError('Enter your email address above first.');
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showSuccess('Password reset email sent! Check your inbox.');
+    } catch (e) {
+      showError(friendlyError(e.code));
+    }
+  };
+
+  window.switchTab = (tab) => {
+    clearMessages();
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+  };
+
+  function friendlyError(code) {
+    const errors = {
+      'auth/user-not-found': 'No account found with this email.',
+      'auth/wrong-password': 'Incorrect password. Try again.',
+      'auth/email-already-in-use': 'This email is already registered. Sign in instead.',
+      'auth/invalid-email': 'Please enter a valid email address.',
+      'auth/weak-password': 'Password must be at least 6 characters.',
+      'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+      'auth/network-request-failed': 'Network error. Check your connection.',
+      'auth/too-many-requests': 'Too many attempts. Try again later.'
+    };
+    return errors[code] || 'Something went wrong. Please try again.';
+  }
+</script>
+</body>
+</html>
