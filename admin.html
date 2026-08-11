@@ -254,14 +254,18 @@
     // ── Sign out ──────────────────────────────────────────────
     window.logoutAdmin = async () => {
       await signOut(auth);
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
     };
 
     // ── Auth gate ─────────────────────────────────────────────
     onAuthStateChanged(auth, async (user) => {
       document.getElementById('gate-msg').style.display = 'none';
-      if (!user || !isAdmin(user)) {
-        window.location.href = 'login.html';
+      if (!user) {
+        window.location.replace('login.html');
+        return;
+      }
+      if (!isAdmin(user)) {
+        window.location.replace('index.html');
         return;
       }
       document.getElementById('admin-user').textContent = user.email;

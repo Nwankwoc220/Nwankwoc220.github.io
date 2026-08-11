@@ -374,17 +374,17 @@
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
+  const currentPage = window.location.pathname.split('/').pop().toLowerCase();
   let selectedRole = null;
 
   // ── If already logged in, route to correct page ──────────
-  // Skip anonymous users to avoid redirect loops with old cached sessions
+  // Signed-in admins stay on login page so they can choose admin or student mode.
   onAuthStateChanged(auth, (user) => {
-    if (user && !user.isAnonymous && user.email) {
-      if (ADMIN_EMAILS.includes(user.email)) {
-        window.location.href = 'admin.html';
-      } else {
-        window.location.href = 'index.html';
-      }
+    if (!user || user.isAnonymous || !user.email) return;
+    if (currentPage !== 'login.html' && currentPage !== '') return;
+
+    if (!ADMIN_EMAILS.includes(user.email)) {
+      window.location.replace('index.html');
     }
   });
 
@@ -441,10 +441,18 @@
   }
 
   function redirect(user) {
+    if (selectedRole === 'student') {
+      window.location.replace('index.html');
+      return;
+    }
+    if (selectedRole === 'admin') {
+      window.location.replace('admin.html');
+      return;
+    }
     if (ADMIN_EMAILS.includes(user.email)) {
-      window.location.href = 'admin.html';
+      window.location.replace('admin.html');
     } else {
-      window.location.href = 'index.html';
+      window.location.replace('index.html');
     }
   }
 
@@ -467,13 +475,17 @@
     try {
       showLoading(true);
       const result = await signInWithPopup(auth, provider);
+
       if (selectedRole === 'admin' && !ADMIN_EMAILS.includes(result.user.email)) {
         await signOut(auth);
         showLoading(false);
         showError('Access denied. This account is not authorised as admin.');
         return;
       }
-      if (selectedRole === 'student') await saveStudentProfile(result.user);
+
+      if (selectedRole === 'student' || !ADMIN_EMAILS.includes(result.user.email)) {
+        await saveStudentProfile(result.user);
+      }
       redirect(result.user);
     } catch (e) {
       showLoading(false);
@@ -483,12 +495,16 @@
 
   window.loginWithEmail = async () => {
     clearMessages();
+    if (selectedRole === 'admin') {
+      return showError('Admin login is only available via Google sign-in.');
+    }
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
     if (!email || !password) return showError('Please enter your email and password.');
     try {
       showLoading(true);
       const result = await signInWithEmailAndPassword(auth, email, password);
+      await saveStudentProfile(result.user);
       redirect(result.user);
     } catch (e) {
       showLoading(false);
@@ -498,6 +514,9 @@
 
   window.registerWithEmail = async () => {
     clearMessages();
+    if (selectedRole === 'admin') {
+      return showError('Admin login is only available via Google sign-in.');
+    }
     const name = document.getElementById('reg-name').value.trim();
     const matric = document.getElementById('reg-matric').value.trim();
     const email = document.getElementById('reg-email').value.trim();
