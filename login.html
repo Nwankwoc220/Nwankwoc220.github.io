@@ -440,20 +440,33 @@
     document.getElementById('auth-screen').style.display = show ? 'none' : 'block';
   }
 
-  function redirect(user) {
-    if (selectedRole === 'student') {
-      window.location.replace('index.html');
-      return;
-    }
-    if (selectedRole === 'admin') {
-      window.location.replace('admin.html');
-      return;
-    }
-    if (ADMIN_EMAILS.includes(user.email)) {
-      window.location.replace('admin.html');
-    } else {
-      window.location.replace('index.html');
-    }
+  // Redirect with auth state verification to prevent login loop
+  async function redirect(user) {
+    const targetPage = selectedRole === 'student' ? 'index.html' : 
+                       selectedRole === 'admin' ? 'admin.html' :
+                       ADMIN_EMAILS.includes(user.email) ? 'admin.html' : 'index.html';
+    
+    // Wait for auth state to be fully propagated (max 3 seconds)
+    return new Promise((resolve) => {
+      let attempts = 0;
+      const checkAuth = () => {
+        attempts++;
+        const currentUser = auth.currentUser;
+        if (currentUser && !currentUser.isAnonymous && currentUser.email) {
+          // Auth state is confirmed
+          window.location.replace(targetPage);
+          resolve();
+        } else if (attempts < 30) {
+          // Retry after 100ms
+          setTimeout(checkAuth, 100);
+        } else {
+          // Force redirect after timeout
+          window.location.replace(targetPage);
+          resolve();
+        }
+      };
+      checkAuth();
+    });
   }
 
   async function saveStudentProfile(user, extra = {}) {
@@ -486,6 +499,9 @@
       if (selectedRole === 'student' || !ADMIN_EMAILS.includes(result.user.email)) {
         await saveStudentProfile(result.user);
       }
+      
+      // Mark successful login to prevent auth guard redirect loop
+      sessionStorage.setItem('_loginTime', Date.now().toString());
       redirect(result.user);
     } catch (e) {
       showLoading(false);
@@ -505,6 +521,9 @@
       showLoading(true);
       const result = await signInWithEmailAndPassword(auth, email, password);
       await saveStudentProfile(result.user);
+      
+      // Mark successful login to prevent auth guard redirect loop
+      sessionStorage.setItem('_loginTime', Date.now().toString());
       redirect(result.user);
     } catch (e) {
       showLoading(false);
@@ -527,6 +546,9 @@
       showLoading(true);
       const result = await createUserWithEmailAndPassword(auth, email, password);
       await saveStudentProfile(result.user, { fullName: name, matric });
+      
+      // Mark successful login to prevent auth guard redirect loop
+      sessionStorage.setItem('_loginTime', Date.now().toString());
       redirect(result.user);
     } catch (e) {
       showLoading(false);

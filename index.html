@@ -602,18 +602,42 @@
   const db = getFirestore(app);
 
   // ── Auth Guard ──────────────────────────────────────────────
+  let authInitialized = false;
   onAuthStateChanged(auth, async (user) => {
-    if (!user || user.isAnonymous || !user.email) {
-      window.location.replace('login.html');
+    // If we just came from login (within 2 seconds), wait for auth to settle
+    const loginTime = parseInt(sessionStorage.getItem('_loginTime') || '0');
+    if (Date.now() - loginTime < 2000) {
+      setTimeout(() => {
+        // Re-check after auth settles
+        const currentUser = auth.currentUser;
+        if (currentUser && !currentUser.isAnonymous && currentUser.email) {
+          authInitialized = true;
+          handleAuthSuccess(currentUser);
+        } else if (!authInitialized) {
+          window.location.replace('login.html');
+        }
+      }, 500);
       return;
     }
 
+    if (!user || user.isAnonymous || !user.email) {
+      if (!authInitialized) {
+        window.location.replace('login.html');
+      }
+      return;
+    }
+
+    authInitialized = true;
+    handleAuthSuccess(user);
+  });
+
+  function handleAuthSuccess(user) {
     const name = user.displayName || user.email?.split('@')[0] || 'Lasuite';
     const heroEl = document.getElementById('hero-name');
     if (heroEl) heroEl.textContent = `Welcome, ${name}! 👋`;
 
-    await Promise.all([loadAnnouncements(), loadSchedules()]);
-  });
+    Promise.all([loadAnnouncements(), loadSchedules()]).catch(console.error);
+  }
 
   // ── Notification badge ──────────────────────────────────────
   function updateBadge(count) {
@@ -636,7 +660,7 @@
     }
   }
 
-  // ── Load Announcements ──────────────────────────────────────
+  //  Load Announcements 
   async function loadAnnouncements() {
     try {
       const q = query(collection(db, 'announcements'), orderBy('timestamp', 'desc'));
@@ -684,7 +708,7 @@
     }
   }
 
-  // ── Load Schedules into Timetable ───────────────────────────
+  //  Load Schedules into Timetable 
   async function loadSchedules() {
     try {
       const snap = await getDocs(collection(db, 'schedules'));
