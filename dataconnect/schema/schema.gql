@@ -1,0 +1,33 @@
+type Admin @table {
+  email: String!
+  role: String!
+  lastLoginAt: Timestamp
+}
+
+type Announcement @table {
+  title: String!
+  content: String!
+  isActive: Boolean!
+  createdAt: Timestamp!
+  scheduledAt: Timestamp
+  expiresAt: Timestamp
+  author: Admin
+}
+
+type MetricEvent @table {
+  eventType: String!
+  timestamp: Timestamp!
+  metadata: String
+}
+
+type AnalyticsReport @table {
+  reportName: String!
+  dateRange: String!
+  totalCount: Int64!
+  reportData: String
+}
+
+type AppConfig @table {
+  key: String!
+  value: String!
+}

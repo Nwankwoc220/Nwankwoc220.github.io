@@ -1,0 +1,26 @@
+query ListAllActiveAnnouncements @auth(level: PUBLIC) {
+  announcements(where: {isActive: {eq: true}}) {
+    title
+    content
+    createdAt
+    author {
+      email
+    }
+  }
+}
+
+mutation CreateAdmin @auth(expr: "auth.token.admin == true") {
+  admin_insert(data: {email: "admin@example.com", role: "SUPER_ADMIN"})
+}
+
+mutation LogMetricEvent($eventType: String!) @auth(level: USER) {
+  metricEvent_insert(data: {eventType: $eventType, timestamp_expr: "request.time"})
+}
+
+query GetLatestAnalyticsReport @auth(level: USER) {
+  analyticsReports(orderBy: [{totalCount: DESC}], limit: 1) {
+    reportName
+    totalCount
+    dateRange
+  }
+}
