@@ -1,0 +1,13 @@
+{
+    "configurations": [
+        
+
+
+        {
+            "type": "chrome",
+            "name": "https://lasu-navigator-backend-production.up.railway.app/",
+            "request": "launch",
+            "url": "https://lasu-navigator-backend-production.up.railway.app/"
+        }
+    ]
+}
