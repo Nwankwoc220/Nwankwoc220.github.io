@@ -364,11 +364,6 @@
     measurementId: 'G-J0R6H1LBK4'
   };
 
-  // admin emails here
-  const ADMIN_EMAILS = [
-    'nwankwoc220@gmail.com' // 
-  ];
-
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
@@ -378,14 +373,10 @@
   let selectedRole = null;
 
   // ── If already logged in, route to correct page ──────────
-  // Signed-in admins stay on login page so they can choose admin or student mode.
+  // The server decides whether a user is an admin; the client no longer trusts a local email list.
   onAuthStateChanged(auth, (user) => {
     if (!user || user.isAnonymous || !user.email) return;
     if (currentPage !== 'login.html' && currentPage !== '') return;
-
-    if (!ADMIN_EMAILS.includes(user.email)) {
-      window.location.replace('index.html');
-    }
   });
 
   // ── Role selection ────────────────────────────────────────
@@ -442,10 +433,8 @@
 
   // Redirect with auth state verification to prevent login loop
   async function redirect(user) {
-    const targetPage = selectedRole === 'student' ? 'index.html' : 
-                       selectedRole === 'admin' ? 'admin.html' :
-                       ADMIN_EMAILS.includes(user.email) ? 'admin.html' : 'index.html';
-    
+    const targetPage = selectedRole === 'student' ? 'index.html' : 'admin.html';
+
     // Wait for auth state to be fully propagated (max 3 seconds)
     return new Promise((resolve) => {
       let attempts = 0;
@@ -489,14 +478,7 @@
       showLoading(true);
       const result = await signInWithPopup(auth, provider);
 
-      if (selectedRole === 'admin' && !ADMIN_EMAILS.includes(result.user.email)) {
-        await signOut(auth);
-        showLoading(false);
-        showError('Access denied. This account is not authorised as admin.');
-        return;
-      }
-
-      if (selectedRole === 'student' || !ADMIN_EMAILS.includes(result.user.email)) {
+      if (selectedRole === 'student') {
         await saveStudentProfile(result.user);
       }
       

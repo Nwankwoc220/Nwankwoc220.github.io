@@ -46,8 +46,8 @@
 
       <!-- Section Tabs -->
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchSection('announcements')">📢 Announcements</button>
-        <button class="tab-btn" onclick="switchSection('schedules')">📅 Class Schedules</button>
+        <button class="tab-btn active" onclick="switchSection('announcements', event)">📢 Announcements</button>
+        <button class="tab-btn" onclick="switchSection('schedules', event)">📅 Class Schedules</button>
       </div>
 
       <!-- ── Announcements Section ── -->
@@ -96,13 +96,17 @@
   </div>
 
   <script type="module">
-    import { postAnouncement as
-       postAnnouncementApi} from './lasu-navigator-1.js';
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import {
-      getFirestore, collection, addDoc, getDocs,
-      deleteDoc, doc, query, orderBy
-    } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+      getMyProfile,
+      getAllStudents,
+      getAnnouncements,
+      postAnnouncement as postAnnouncementApi,
+      deleteAnnouncement as deleteAnnouncementApi,
+      getSchedules,
+      postSchedule,
+      deleteSchedule as deleteScheduleApi
+    } from './api.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
     const firebaseConfig = {
@@ -115,98 +119,121 @@
       measurementId: 'G-J0R6H1LBK4'
     };
 
-    const ADMIN_EMAILS = [
-      'nwankwoc220@gmail.com'
-    ];
-
-    const DAYS_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
     const auth = getAuth(app);
 
-    function isAdmin(u) { return u && ADMIN_EMAILS.includes(u.email); }
+    async function ensureAdminAccess(user) {
+      if (!user) {
+        throw new Error('No authenticated user');
+      }
+
+      const profile = await getMyProfile();
+      if (!profile || profile.role !== 'ADMIN') {
+        throw new Error('Forbidden: admin role required');
+      }
+
+      return profile;
+    }
 
     // ── Tab switching ─────────────────────────────────────────
-    window.switchSection = (name) => {
+    window.switchSection = (name, event) => {
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('section-' + name).classList.add('active');
-      event.target.classList.add('active');
+      if (event?.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
     };
 
     // ── Student count ─────────────────────────────────────────
     async function loadStudentCount() {
-      const snap = await getDocs(collection(db, 'students'));
+      const students = await getAllStudents();
       const el = document.getElementById('student-count');
-      if (el) el.textContent = snap.size;
+      if (el) el.textContent = students ? students.length : 0;
     }
 
     // ── Announcements ─────────────────────────────────────────
     async function loadAnnouncements() {
       const list = document.getElementById('announcement-list');
       if (!list) return;
-      const q = query(collection(db, 'announcements'), orderBy('timestamp', 'desc'));
-      const snap = await getDocs(q);
-      if (snap.empty) { list.innerHTML = '<p class="meta">No announcements yet.</p>'; return; }
-      list.innerHTML = snap.docs.map(d => {
-        const data = d.data();
-        const time = new Date(data.timestamp || 0).toLocaleString();
-        return `
+
+      try {
+        const items = await getAnnouncements();
+        if (!items || items.length === 0) {
+          list.innerHTML = '<p class="meta">No announcements yet.</p>';
+          return;
+        }
+
+        list.innerHTML = items.map(item => `
           <div class="item">
-            <strong>${data.title || 'Untitled'}</strong>
-            <div>${data.body || ''}</div>
-            <div class="meta">By ${data.author || 'Admin'} · ${time}</div>
+            <strong>${item.title || 'Untitled'}</strong>
+            <div>${item.body || ''}</div>
+            <div class="meta">By ${item.author_email || 'Admin'} · ${new Date(item.created_at || 0).toLocaleString()}</div>
             <div class="item-actions">
-              <button class="danger" onclick="deleteAnnouncement('${d.id}')">🗑️ Delete</button>
+              <button class="danger" onclick="deleteAnnouncement('${item.id}')">🗑️ Delete</button>
             </div>
-          </div>`;
-      }).join('');
+          </div>`).join('');
+      } catch (error) {
+        console.error('Failed to load announcements:', error);
+        list.innerHTML = '<p class="meta">Unable to load announcements.</p>';
+      }
     }
 
     window.postAnnouncement = async () => {
       const title = document.getElementById('ann-title').value.trim();
       const body = document.getElementById('ann-body').value.trim();
       if (!title || !body) { alert('Please enter both a title and a message.'); return; }
-      await addDoc(collection(db, 'announcements'), {
-        title, body,
-        timestamp: Date.now(),
-        author: auth.currentUser?.email || 'admin',
-        type: 'announcement'
-      });
-      document.getElementById('ann-title').value = '';
-      document.getElementById('ann-body').value = '';
-      await loadAnnouncements();
-      alert('✅ Announcement posted!');
+
+      try {
+        await postAnnouncementApi(title, body);
+        document.getElementById('ann-title').value = '';
+        document.getElementById('ann-body').value = '';
+        await loadAnnouncements();
+        alert('✅ Announcement posted!');
+      } catch (error) {
+        console.error('Announcement post failed:', error);
+        alert('❌ Failed to post announcement. Please try again.');
+      }
     };
 
     window.deleteAnnouncement = async (id) => {
       if (!confirm('Delete this announcement?')) return;
-      await deleteDoc(doc(db, 'announcements', id));
-      await loadAnnouncements();
+
+      try {
+        await deleteAnnouncementApi(id);
+        await loadAnnouncements();
+      } catch (error) {
+        console.error('Delete announcement failed:', error);
+        alert('❌ Failed to delete announcement.');
+      }
     };
 
     // ── Class Schedules ───────────────────────────────────────
     async function loadSchedules() {
       const list = document.getElementById('schedule-list');
       if (!list) return;
-      const snap = await getDocs(collection(db, 'schedules'));
-      if (snap.empty) { list.innerHTML = '<p class="meta">No schedules yet.</p>'; return; }
 
-      // Sort by day order
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      docs.sort((a, b) => DAYS_ORDER.indexOf(a.day) - DAYS_ORDER.indexOf(b.day));
+      try {
+        const items = await getSchedules();
+        if (!items || items.length === 0) {
+          list.innerHTML = '<p class="meta">No schedules yet.</p>';
+          return;
+        }
 
-      list.innerHTML = docs.map(data => `
-        <div class="item">
-          <strong>${data.course || 'Unnamed Course'}</strong>
-          <div>👤 ${data.lecturer || '—'}</div>
-          <div>📅 ${data.day || '—'} · ⏰ ${data.time || '—'} · ⏱ ${data.duration || '—'}</div>
-          <div>📍 ${data.venue || '—'}</div>
-          <div class="item-actions">
-            <button class="danger" onclick="deleteSchedule('${data.id}')">🗑️ Delete</button>
-          </div>
-        </div>`).join('');
+        list.innerHTML = items.map(item => `
+          <div class="item">
+            <strong>${item.course_code || item.course_name || 'Unnamed Course'}</strong>
+            <div>👤 ${item.lecturer_name || '—'}</div>
+            <div>📅 ${item.day_of_week || '—'} · ⏰ ${item.start_time || '—'} · ⏱ ${item.duration_hours || '—'} hours</div>
+            <div>📍 ${item.venue || '—'}</div>
+            <div class="item-actions">
+              <button class="danger" onclick="deleteSchedule('${item.id}')">🗑️ Delete</button>
+            </div>
+          </div>`).join('');
+      } catch (error) {
+        console.error('Failed to load schedules:', error);
+        list.innerHTML = '<p class="meta">Unable to load schedules.</p>';
+      }
     }
 
     window.addSchedule = async () => {
@@ -222,35 +249,41 @@
         return;
       }
 
-      await addDoc(collection(db, 'schedules'), {
-        course, lecturer, day, time, venue, duration,
-        updatedAt: Date.now(),
-        type: 'schedule'
-      });
+      try {
+        await postSchedule({
+          course_code: course,
+          course_name: course,
+          lecturer_name: lecturer,
+          day_of_week: day,
+          start_time: time,
+          duration_hours: Number(duration) || 2,
+          venue
+        });
 
-      // Also post a notification so students see it
-      await addDoc(collection(db, 'announcements'), {
-        title: `📅 New class: ${course}`,
-        body: `${day} at ${time} in ${venue}${lecturer ? ' — ' + lecturer : ''}`,
-        timestamp: Date.now(),
-        author: auth.currentUser?.email || 'admin',
-        type: 'schedule'
-      });
+        ['sch-course','sch-lecturer','sch-venue','sch-duration'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('sch-day').value = '';
+        document.getElementById('sch-time').value = '';
 
-      ['sch-course','sch-lecturer','sch-venue','sch-duration'].forEach(id => {
-        document.getElementById(id).value = '';
-      });
-      document.getElementById('sch-day').value = '';
-      document.getElementById('sch-time').value = '';
-
-      await loadSchedules();
-      alert('✅ Schedule added! Students will see a notification.');
+        await loadSchedules();
+        alert('✅ Schedule added successfully!');
+      } catch (error) {
+        console.error('Add schedule failed:', error);
+        alert('❌ Failed to add schedule.');
+      }
     };
 
     window.deleteSchedule = async (id) => {
       if (!confirm('Delete this schedule?')) return;
-      await deleteDoc(doc(db, 'schedules', id));
-      await loadSchedules();
+
+      try {
+        await deleteScheduleApi(id);
+        await loadSchedules();
+      } catch (error) {
+        console.error('Delete schedule failed:', error);
+        alert('❌ Failed to delete schedule.');
+      }
     };
 
     // ── Sign out ──────────────────────────────────────────────
@@ -266,15 +299,18 @@
         window.location.replace('login.html');
         return;
       }
-      if (!isAdmin(user)) {
+
+      try {
+        const profile = await ensureAdminAccess(user);
+        document.getElementById('admin-user').textContent = profile.email || user.email;
+        document.getElementById('admin-panel').style.display = 'block';
+        await loadStudentCount();
+        await loadAnnouncements();
+        await loadSchedules();
+      } catch (error) {
+        console.error('Admin access denied:', error);
         window.location.replace('index.html');
-        return;
       }
-      document.getElementById('admin-user').textContent = user.email;
-      document.getElementById('admin-panel').style.display = 'block';
-      await loadStudentCount();
-      await loadAnnouncements();
-      await loadSchedules();
     });
   </script>
 </body>

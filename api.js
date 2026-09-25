@@ -19,11 +19,28 @@ async function apiFetch(path, options = {}) {
       ...(options.headers || {})
     }
   });
+
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'API error');
+    let errPayload = { error: 'API error' };
+    try {
+      errPayload = await res.json();
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) errPayload = { error: text };
+      } catch {
+        // ignore parse errors
+      }
+    }
+    throw new Error(errPayload.error || 'API error');
   }
-  return res.json();
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return res.json();
+  }
+
+  return null;
 }
 
 // ── User / Profile ───────────────────────────────────────────
