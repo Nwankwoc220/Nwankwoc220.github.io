@@ -1,5 +1,5 @@
 
-const API_BASE = 'https://lasu-navigator-backend-production.up.railway.app/'; // 👈 replace after deploying
+const API_BASE = 'https://lasu-navigator-backend-production.up.railway.app'; // 👈 replace after deploying
 
 // ── Get Firebase ID token for API calls ─────────────────────
 async function getToken() {
