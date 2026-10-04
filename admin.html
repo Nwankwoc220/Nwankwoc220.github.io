@@ -127,12 +127,17 @@
         throw new Error('No authenticated user');
       }
 
-      const profile = await getMyProfile();
-      if (!profile || profile.role !== 'ADMIN') {
-        throw new Error('Forbidden: admin role required');
+      const token = await user.getIdTokenResult(true);
+      if (token.claims.admin !== true) {
+        throw new Error('Forbidden: admin claim required');
       }
 
-      return profile;
+      try {
+        return await getMyProfile() || {};
+      } catch (error) {
+        console.warn('Unable to load admin profile:', error);
+        return {};
+      }
     }
 
     // ── Tab switching ─────────────────────────────────────────

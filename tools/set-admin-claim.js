@@ -1,4 +1,5 @@
-const admin = require('firebase-admin');
+const { cert, initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 
 const adminUid = process.env.ADMIN_UID || process.argv[2];
 const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './serviceAccountKey.json';
@@ -17,11 +18,11 @@ try {
   process.exit(1);
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+initializeApp({
+  credential: cert(serviceAccount)
 });
 
-admin.auth()
+getAuth()
   .setCustomUserClaims(adminUid, { admin: true })
   .then(() => {
     console.log(`Admin claim set for UID ${adminUid} ✓`);
