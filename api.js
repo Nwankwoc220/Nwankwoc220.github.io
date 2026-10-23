@@ -1,10 +1,10 @@
 
-const API_BASE = 'https://lasu-navigator-backend-production.up.railway.app'; // 👈 replace after deploying
+const API_BASE = 'https://lasu-navigator-backend.railway.app'; // 👈 replace after deploying
 
 // ── Get Firebase ID token for API calls ─────────────────────
 async function getToken() {
-  const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
-  const user = getAuth().currentUser;
+  const auth = getAuth();
+  const user = auth.currentUser;
   if (!user) throw new Error('Not logged in');
   return user.getIdToken();
 }
