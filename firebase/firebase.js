@@ -53,17 +53,16 @@ async function loadProfileFromFirestore(uid) {
 
 async function enableNotifications() {
   if (!("Notification" in window) || !messaging) return false;
-
-  if (Notification.permission === "denied") return false;
-  if (Notification.permission !== "granted") {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") return false;
-  }
+  if (Notification.permission !== "granted") return false;
 
   try {
-    await navigator.serviceWorker.ready;
+    await navigator.serviceWorker.register("/sw.js");
+    const serviceWorkerRegistration = await navigator.serviceWorker.ready;
     const vapidKey = window.__FIREBASE_VAPID_KEY || "";
-    const token = await getToken(messaging, vapidKey ? { vapidKey } : undefined);
+    const token = await getToken(messaging, {
+      serviceWorkerRegistration,
+      ...(vapidKey ? { vapidKey } : {})
+    });
     if (token && firebaseUID) {
       await setDoc(doc(db, "students", firebaseUID), {
         notificationToken: token,
@@ -85,8 +84,15 @@ if (messaging) {
     const title = payload?.notification?.title || "LASU Navigator";
     const body = payload?.notification?.body || "You have a new campus update.";
     if (Notification.permission === "granted") {
-      new Notification(title, { body, icon: "/icons/icon-192.png" });
+      navigator.serviceWorker.ready
+        .then(registration => registration.showNotification(title, {
+          body,
+          icon: "/icons/icon-192.png",
+          data: payload?.data || {}
+        }))
+        .catch(error => console.warn("Could not display foreground notification", error));
     }
+    window.dispatchEvent(new Event("lasu-notification-received"));
   });
 }
 

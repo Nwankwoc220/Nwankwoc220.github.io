@@ -429,11 +429,18 @@ async function requestNotifPermission(){
   const btn=document.getElementById('notif-req-btn');
   const st=document.getElementById('notif-status');
   if(p==='granted'){
-    btn.textContent='✅ Notifications Enabled';
-    btn.style.background='var(--green2)';
-    st.textContent='You will receive class reminders and campus alerts.';
-    if(window.requestFirebaseNotifications){ await window.requestFirebaseNotifications(); }
-    showToast('🔔 Notifications enabled!');
+    const pushEnabled = window.requestFirebaseNotifications
+      ? await window.requestFirebaseNotifications()
+      : false;
+    if(pushEnabled){
+      btn.textContent='✅ Notifications Enabled';
+      btn.style.background='var(--green2)';
+      st.textContent='You will receive class reminders and campus alerts.';
+      showToast('🔔 Notifications enabled!');
+    }else{
+      st.textContent='Browser permission is on, but push setup failed. Please try again later.';
+      showToast('Could not finish push notification setup');
+    }
   }else{
     st.textContent='Permission denied. You can re-enable in your browser settings.';
     showToast('Notifications blocked — check browser settings');
@@ -477,7 +484,6 @@ function saveNotifSettings(){
 // ═══════════════════════════════
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
-  navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(()=>{});
 }
 
 // ═══════════════════════════════

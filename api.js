@@ -1,4 +1,6 @@
 
+import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
 const API_BASE = 'https://lasu-navigator-backend.railway.app'; // 👈 replace after deploying
 
 // ── Get Firebase ID token for API calls ─────────────────────
@@ -102,4 +104,8 @@ export async function getUnreadCount() {
 
 export async function markNotificationRead(id) {
   return apiFetch('/api/notifications/' + id + '/read', { method: 'PATCH' });
+}
+
+export async function markAllNotificationsRead() {
+  return apiFetch('/api/notifications/read-all', { method: 'PATCH' });
 }

@@ -190,11 +190,15 @@
       if (!title || !body) { alert('Please enter both a title and a message.'); return; }
 
       try {
-        await postAnnouncementApi(title, body);
+        const result = await postAnnouncementApi(title, body);
         document.getElementById('ann-title').value = '';
         document.getElementById('ann-body').value = '';
         await loadAnnouncements();
-        alert('✅ Announcement posted!');
+        if (result?.push?.failed) {
+          alert(`✅ Announcement posted. Push alerts sent to ${result.push.sent} device(s); ${result.push.failed} failed.`);
+        } else {
+          alert(`✅ Announcement posted. Push alerts sent to ${result?.push?.sent || 0} device(s).`);
+        }
       } catch (error) {
         console.error('Announcement post failed:', error);
         alert('❌ Failed to post announcement. Please try again.');

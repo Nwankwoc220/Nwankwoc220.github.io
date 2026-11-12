@@ -142,7 +142,7 @@
 <header class="hdr">
   <div class="logo"><div class="logo-dot"></div>LASU NAVIGATOR</div>
   <div class="hdr-actions">
-    <button class="hdr-btn notif-badge" onclick="showPage('notifications')" title="Notifications">🔔</button>
+    <button class="hdr-btn notif-badge" onclick="openNotifications()" title="Notifications">🔔</button>
     <button class="hdr-btn" onclick="toggleTheme()">🌓</button>
     <button class="hdr-btn" onclick="signOutUser()" title="Sign out">🚪</button>
   </div>
@@ -190,7 +190,7 @@
       <div class="lrow" onclick="showPage('map');switchMapTab('hv')">
         <div class="lrow-l"><div class="lrow-ic">🏠</div><div class="lrow-t">Hostel Locator</div></div><div class="lrow-a">→</div>
       </div>
-      <div class="lrow" onclick="showPage('notifications')">
+      <div class="lrow" onclick="openNotifications()">
         <div class="lrow-l"><div class="lrow-ic">🔔</div><div class="lrow-t">Notifications & Reminders</div></div><div class="lrow-a">→</div>
       </div>
       <div class="lrow" onclick="showPage('profile')">
@@ -659,18 +659,7 @@
     <div class="notif-card">
       <h3>📬 Recent Notifications</h3>
       <div id="notif-list">
-        <div class="nitem">
-          <div class="nico green">📅</div>
-          <div class="ntxt"><h4>Registration Reminder</h4><p>Course registration closes in 3 days</p></div>
-        </div>
-        <div class="nitem">
-          <div class="nico gold">�</div>
-          <div class="ntxt"><h4>Useful Links</h4><p>Campus portals and quick access tools are ready for use</p></div>
-        </div>
-        <div class="nitem">
-          <div class="nico blue">📢</div>
-          <div class="ntxt"><h4>Campus Update</h4><p>Library is open on Saturdays 9am–3pm</p></div>
-        </div>
+        <p class="meta">Loading notifications...</p>
       </div>
     </div>
     <div class="notif-card">
@@ -860,9 +849,10 @@
 
 <!-- Auth Guard + Notifications + Timetable from Firestore -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getApps, initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getNotifications, markAllNotificationsRead } from './api.js';
 
   const firebaseConfig = {
     apiKey: 'AIzaSyB3e9pejY7EkDO8i5cZ7HX5KUmLGpBWdz8',
@@ -877,7 +867,7 @@
   const DAYS_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const DAY_SHORT = { Monday:'Mon', Tuesday:'Tue', Wednesday:'Wed', Thursday:'Thu', Friday:'Fri', Saturday:'Sat' };
 
-  const app = initializeApp(firebaseConfig);
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
@@ -916,7 +906,7 @@
     const heroEl = document.getElementById('hero-name');
     if (heroEl) heroEl.textContent = `Welcome, ${name}! 👋`;
 
-    Promise.all([loadAnnouncements(), loadSchedules()]).catch(console.error);
+    Promise.all([loadNotifications(), loadSchedules()]).catch(console.error);
   }
 
   // ── Notification badge ──────────────────────────────────────
@@ -940,53 +930,63 @@
     }
   }
 
-  //  Load Announcements 
-  async function loadAnnouncements() {
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[character]);
+  }
+
+  async function loadNotifications() {
     try {
-      const q = query(collection(db, 'announcements'), orderBy('timestamp', 'desc'));
-      const snap = await getDocs(q);
-
       const list = document.getElementById('notif-list');
-      if (!list || snap.empty) return;
+      if (!list) return;
 
-      // Track unread: items newer than last visit
-      const lastSeen = parseInt(localStorage.getItem('lastNotifSeen') || '0');
-      let unread = 0;
+      const notifications = await getNotifications();
+      const unread = notifications.filter(notification => !notification.is_read).length;
+      if (!notifications.length) {
+        list.innerHTML = '<p class="meta">You have no notifications yet.</p>';
+        updateBadge(0);
+        return;
+      }
 
-      const html = snap.docs.map(docSnap => {
-        const data = docSnap.data();
-        const ts = data.timestamp || 0;
-        const isNew = ts > lastSeen;
-        if (isNew) unread++;
-        const time = new Date(ts).toLocaleDateString();
-        const icon = data.type === 'schedule' ? '📅' : '📢';
-        const color = data.type === 'schedule' ? 'green' : 'blue';
+      list.innerHTML = notifications.map(notification => {
+        const isUnread = !notification.is_read;
+        const createdAt = new Date(notification.created_at);
+        const time = Number.isNaN(createdAt.getTime()) ? '' : createdAt.toLocaleString();
         return `
-          <div class="nitem" style="${isNew ? 'border-left:3px solid #e74c3c;padding-left:10px;' : ''}">
-            <div class="nico ${color}">${icon}</div>
+          <div class="nitem" style="${isUnread ? 'border-left:3px solid #e74c3c;padding-left:10px;' : ''}">
+            <div class="nico blue">📢</div>
             <div class="ntxt">
-              ${isNew ? '<span style="font-size:.7rem;font-weight:700;color:#e74c3c;text-transform:uppercase;">New</span>' : ''}
-              <h4>${data.title || 'Notification'}</h4>
-              <p>${data.body || ''}</p>
-              <span style="font-size:.75rem;color:var(--txt3)">${time}</span>
+              ${isUnread ? '<span style="font-size:.7rem;font-weight:700;color:#e74c3c;text-transform:uppercase;">New</span>' : ''}
+              <h4>${escapeHtml(notification.title || 'Notification')}</h4>
+              <p>${escapeHtml(notification.body || '')}</p>
+              <span style="font-size:.75rem;color:var(--txt3)">${escapeHtml(time)}</span>
             </div>
           </div>`;
       }).join('');
-
-      // Replace static placeholder content with live data
-      list.innerHTML = html;
       updateBadge(unread);
-
-      // Clear badge when user opens notifications
-      document.querySelector('[onclick="showPage(\'notifications\')"]')?.addEventListener('click', () => {
-        localStorage.setItem('lastNotifSeen', Date.now().toString());
-        updateBadge(0);
-      }, { once: false });
-
-    } catch (e) {
-      console.warn('Could not load announcements:', e);
+    } catch (error) {
+      console.warn('Could not load notifications:', error);
+      const list = document.getElementById('notif-list');
+      if (list) list.innerHTML = '<p class="meta">Unable to load notifications. Please try again later.</p>';
     }
   }
+
+  window.openNotifications = async () => {
+    window.showPage('notifications');
+    try {
+      await markAllNotificationsRead();
+      await loadNotifications();
+    } catch (error) {
+      console.warn('Could not mark notifications as read:', error);
+    }
+  };
+  window.addEventListener('lasu-notification-received', loadNotifications);
+  window.addEventListener('focus', loadNotifications);
 
   //  Load Schedules into Timetable 
   async function loadSchedules() {
