@@ -1,10 +1,10 @@
 {
   "version": 2,
   "name": "lasu-navigator",
-  "builds": [
-    { "src": "**/*", "use": "@vercel/static" }
-  ],
+  "buildCommand": null,
+  "outputDirectory": "frontend",
   "routes": [
+    { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

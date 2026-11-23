@@ -4,12 +4,12 @@
 This folder is a static web app (single-page) prepared as a Progressive Web App (PWA).
 
 Quick contents
-- `index.html` — app entry (single canonical file)
-- `lasu-navigator-1.css` — styles
-- `lasu-navigator-1.js` — app logic and SW registration
-- `qrcode.min.js` — vendored QR library
-- `sw.js` — static service worker
-- `manifest.json` — PWA manifest (now references `/icons/*.png`)
+- `frontend/index.html` — app entry (single canonical file)
+- `frontend/lasu-navigator-1.css` — styles
+- `frontend/lasu-navigator-1.js` — app logic and SW registration
+- `frontend/qrcode.min.js` — vendored QR library
+- `frontend/sw.js` — static service worker
+- `frontend/manifest.json` — PWA manifest (now references `/icons/*.png`)
 - `icons/` — SVG placeholders and CI-generated PNGs
 
 Local testing
@@ -122,4 +122,3 @@ cd ~/Downloads/attachments/icons
 base64 -d icon-192.png > icon-192-decoded.png
 base64 -d icon-512.png > icon-512-decoded.png
 ```
-

@@ -1,8 +1,6 @@
--- ============================================================
 -- LASU NAVIGATOR DATABASE SCHEMA
 -- Backend: Node.js + Express + MySQL (Railway)
 -- Auth: Firebase Authentication (kept as-is)
--- ============================================================
 
 CREATE DATABASE IF NOT EXISTS lasu_navigator;
 USE lasu_navigator;
@@ -16,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     email         VARCHAR(150) UNIQUE NOT NULL,
     role          ENUM('STUDENT', 'ADMIN') DEFAULT 'STUDENT',
     department    VARCHAR(100) DEFAULT 'Computer Science',
-    level         VARCHAR(10)  DEFAULT '300',
+    level         VARCHAR(10)  DEFAULT '400',
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_email (email),
     INDEX idx_uid   (uid)
@@ -59,6 +57,10 @@ CREATE TABLE IF NOT EXISTS notifications (
     INDEX idx_user_uid (user_uid)
 );
 
--- Sample admin user (replace uid with your actual Firebase UID)
-INSERT IGNORE INTO users (uid, full_name, email, role) VALUES
-('AIzaSyB3e9pejY7EkDO8i5cZ7HX5KUmLGpBWdz8', 'Nwankwo Kosiso Christopher', 'nwankwoc220@gmail.com', 'ADMIN');
+-- Admin user identified by the Firebase Authentication UID.
+INSERT INTO users (uid, full_name, email, role) VALUES
+('O8QY6JApMkQVhttWEKUZxkXRqTL2', 'Nwankwo Kosiso Christopher', 'nwankwoc220@gmail.com', 'ADMIN')
+ON DUPLICATE KEY UPDATE
+    uid = VALUES(uid),
+    full_name = VALUES(full_name),
+    role = 'ADMIN';
