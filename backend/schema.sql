@@ -2,9 +2,6 @@
 -- Backend: Node.js + Express + MySQL (Railway)
 -- Auth: Firebase Authentication (kept as-is)
 
-CREATE DATABASE IF NOT EXISTS lasu_navigator;
-USE lasu_navigator;
-
 -- 1. Students / Users Table
 CREATE TABLE IF NOT EXISTS users (
     id            INT AUTO_INCREMENT PRIMARY KEY,

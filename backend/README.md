@@ -39,7 +39,7 @@ student notification API, rather than a separate Firestore announcements collect
 
 The PWA uses `sw.js` as its single root-scope service worker for both offline caching
 and Firebase background push messages. The Firebase web push public key is optional
-as `window.__FIREBASE_VAPID_KEY`; set it in the frontend before `firebase/firebase.js`
+as `window.__FIREBASE_VAPID_KEY`; set it in the frontend before `./firebase/firebase.js`
 loads if the Firebase project requires a custom VAPID key.
 
 ## Deployment on Railway (Step by Step)
@@ -55,8 +55,10 @@ In your Railway project → click "+ New" → "Database" → "Add MySQL"
 Railway automatically sets: MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE, MYSQLPORT
 
 ### Step 4 — Import schema
-In Railway MySQL dashboard → click "Connect" → open Query tab →
-paste the contents of schema.sql → Run
+In Railway MySQL dashboard, open the Query tab for the database used by the
+backend (`MYSQLDATABASE`; it is `railway` in the current database error). Run
+the contents of `schema.sql` there. The script creates tables in the currently
+selected database; it intentionally does not create or switch databases.
 
 ### Step 5 — Add Firebase Service Account
 Go to Firebase Console → Project Settings → Service Accounts →

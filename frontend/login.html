@@ -477,15 +477,15 @@
     try {
       showLoading(true);
       const result = await signInWithPopup(auth, provider);
-
       if (selectedRole === 'student') {
         await saveStudentProfile(result.user);
       }
-      
+
       // Mark successful login to prevent auth guard redirect loop
       sessionStorage.setItem('_loginTime', Date.now().toString());
       redirect(result.user);
     } catch (e) {
+      console.error('Google sign-in failed:', e);
       showLoading(false);
       showError(friendlyError(e.code));
     }
@@ -566,6 +566,9 @@
       'auth/invalid-email': 'Please enter a valid email address.',
       'auth/weak-password': 'Password must be at least 6 characters.',
       'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+      'auth/popup-blocked': 'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.',
+      'auth/unauthorized-domain': 'This site is not authorized for Firebase sign-in. Add its hostname under Firebase Authentication → Settings → Authorized domains.',
+      'auth/operation-not-allowed': 'Google sign-in is not enabled for this Firebase project.',
       'auth/network-request-failed': 'Network error. Check your connection.',
       'auth/too-many-requests': 'Too many attempts. Try again later.'
     };

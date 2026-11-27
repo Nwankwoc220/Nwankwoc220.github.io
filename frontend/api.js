@@ -1,7 +1,7 @@
 
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
-const API_BASE = 'https://lasu-navigator-backend.railway.app'; // 👈 replace after deploying
+const API_BASE = 'https://lasu-navigator-backend-production.up.railway.app';
 
 // ── Get Firebase ID token for API calls ─────────────────────
 async function getToken() {

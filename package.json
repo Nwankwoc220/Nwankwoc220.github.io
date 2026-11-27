@@ -4,12 +4,14 @@
   "description": "LASU Navigator - static PWA",
   "scripts": {
     "start": "node tools/serve.js",
-    "test": "node --check frontend/api.js && node --check frontend/lasu-navigator-1.js && node --check firebase/firebase.js && node --check tools/generate-icons.js && node --check tools/serve.js",
+    "test": "node --check frontend/api.js && node --check frontend/lasu-navigator-1.js && node --check ./firebase/firebase.js && node --check tools/generate-icons.js && node --check tools/serve.js",
     "build-icons": "node tools/generate-icons.js",
     "firebase:deploy": "firebase deploy --only firestore:rules,storage",
     "firebase:set-admin": "node tools/set-admin-claim.js"
   },
   "dependencies": {
+    "express": "^5.3.0",
+    "express-session": "^1.19.0",
     "sharp": "^0.32.6"
   }
 }

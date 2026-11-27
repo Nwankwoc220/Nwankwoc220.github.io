@@ -1,9 +1,11 @@
 require('dotenv').config();
-
 const express = require('express');
 const cors    = require('cors');
 const mysql   = require('mysql2/promise');
-const admin   = require('firebase-admin');
+const {initializeApp, cert} = require('firebase-admin/app');
+const {getFirestore} = require('firebase-admin/firestore');
+const {getAuth} = require('firebase-admin/auth');
+const {getMessaging} = require('firebase-admin/messaging');
 
 let serviceAccount;
 try {
@@ -15,9 +17,12 @@ try {
   throw new Error(`Invalid Firebase service account configuration: ${error.message}`);
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+initializeApp({
+  credential: cert(serviceAccount)
 });
+const db  = getFirestore();
+const auth  = getAuth();
+const messaging = getMessaging();
 
 const app = express();
 app.use(cors());
@@ -41,7 +46,7 @@ const authenticate = async (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Token missing' });
   try {
-    const decoded = await admin.auth().verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token);
     req.user = decoded;
     next();
   } catch {
@@ -139,7 +144,7 @@ app.post('/api/announcements', authenticate, verifyAdmin, async (req, res) => {
     const [mysqlStudents] = await pool.execute(
       "SELECT uid FROM users WHERE role = 'STUDENT'"
     );
-    const firestoreStudents = await admin.firestore().collection('students').get();
+    const firestoreStudents = await db.collection('students').get();
     const studentUids = [...new Set([
       ...mysqlStudents.map(student => student.uid),
       ...firestoreStudents.docs.map(student => student.id)
@@ -174,7 +179,7 @@ app.post('/api/announcements', authenticate, verifyAdmin, async (req, res) => {
     for (let offset = 0; offset < pushTokens.length; offset += 500) {
       const tokens = pushTokens.slice(offset, offset + 500);
       try {
-        const batchResult = await admin.messaging().sendEachForMulticast({
+        const batchResult = await messaging.sendEachForMulticast({
           tokens,
           notification: { title, body: body.slice(0, 1000) },
           data: { announcementId: String(result.insertId), url: '/index.html' },
